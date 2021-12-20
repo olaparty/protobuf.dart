@@ -8,10 +8,10 @@ part of '../protoc.dart';
 
 final _dartIdentifier = RegExp(r'^\w+$');
 final _formatter = DartFormatter();
-const String _convertImportPrefix = r'$convert';
+const String _convertImportPrefix = r'convert';
 
-const String _fixnumImportPrefix = r'$fixnum';
-const String _typedDataImportPrefix = r'$typed_data';
+const String _fixnumImportPrefix = r'fixnum';
+const String _typedDataImportPrefix = r'typed_data';
 const String _protobufImport =
     "import 'package:protobuf/protobuf.dart' as $protobufImportPrefix;";
 const String _asyncImport = "import 'dart:async' as $asyncImportPrefix;";
