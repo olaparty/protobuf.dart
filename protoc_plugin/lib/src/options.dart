@@ -49,9 +49,10 @@ bool genericOptionsParser(CodeGeneratorRequest request,
 /// Options expected by the protoc code generation compiler.
 class GenerationOptions {
   final bool useGrpc;
+  final bool useCustomeRpc;
   final bool generateMetadata;
 
-  GenerationOptions({this.useGrpc = false, this.generateMetadata = false});
+  GenerationOptions({this.useGrpc = false,this.useCustomeRpc = true, this.generateMetadata = false});
 }
 
 /// A parser for a name-value pair option. Options parsed in

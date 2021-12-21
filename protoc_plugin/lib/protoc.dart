@@ -23,6 +23,7 @@ export 'src/code_generator.dart';
 
 part 'src/base_type.dart';
 part 'src/client_generator.dart';
+part 'src/custom_service_generator.dart';
 part 'src/enum_generator.dart';
 part 'src/extension_generator.dart';
 part 'src/file_generator.dart';
