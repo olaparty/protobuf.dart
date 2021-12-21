@@ -407,20 +407,20 @@ class MessageGenerator extends ProtobufContainer {
       out.println('factory $classname.fromJson(${coreImportPrefix}String i,'
           ' [${protobufImportPrefix}ExtensionRegistry r = ${protobufImportPrefix}ExtensionRegistry.EMPTY])'
           ' => create()..mergeFromJson(i, r);');
-      out.println('''@${coreImportPrefix}Deprecated(
-'Using this can add significant overhead to your binary. '
-'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-'Will be removed in next major version')''');
-      out.println('$classname clone() =>'
-          ' $classname()..mergeFromMessage(this);');
-      out.println('''@${coreImportPrefix}Deprecated(
-'Using this can add significant overhead to your binary. '
-'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-'Will be removed in next major version')''');
-      out.println('$classname copyWith(void Function($classname) updates) =>'
-          ' super.copyWith((message) => updates(message as $classname))'
-          ' as $classname;'
-          ' // ignore: deprecated_member_use');
+//       out.println('''@${coreImportPrefix}Deprecated(
+// 'Using this can add significant overhead to your binary. '
+// 'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+// 'Will be removed in next major version')''');
+//       out.println('$classname clone() =>'
+//           ' $classname()..mergeFromMessage(this);');
+//       out.println('''@${coreImportPrefix}Deprecated(
+// 'Using this can add significant overhead to your binary. '
+// 'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+// 'Will be removed in next major version')''');
+//       out.println('$classname copyWith(void Function($classname) updates) =>'
+//           ' super.copyWith((message) => updates(message as $classname))'
+//           ' as $classname;'
+//           ' // ignore: deprecated_member_use');
 
       out.println('${protobufImportPrefix}BuilderInfo get info_ => _i;');
 
@@ -428,16 +428,17 @@ class MessageGenerator extends ProtobufContainer {
       out.println("@${coreImportPrefix}pragma('dart2js:noInline')");
       out.println('static $classname create() => $classname._();');
       out.println('$classname createEmptyInstance() => create();');
+      out.println('$classname clone() => throw UnimplementedError();');
 
-      out.println(
-          'static ${protobufImportPrefix}PbList<$classname> createRepeated() =>'
-          ' ${protobufImportPrefix}PbList<$classname>();');
-      out.println("@${coreImportPrefix}pragma('dart2js:noInline')");
-      out.println('static $classname getDefault() =>'
-          ' _defaultInstance ??='
-          ' ${protobufImportPrefix}GeneratedMessage.\$_defaultFor<$classname>'
-          '(create);');
-      out.println('static $classname? _defaultInstance;');
+      // out.println(
+      //     'static ${protobufImportPrefix}PbList<$classname> createRepeated() =>'
+      //     ' ${protobufImportPrefix}PbList<$classname>();');
+      // out.println("@${coreImportPrefix}pragma('dart2js:noInline')");
+      // out.println('static $classname getDefault() =>'
+      //     ' _defaultInstance ??='
+      //     ' ${protobufImportPrefix}GeneratedMessage.\$_defaultFor<$classname>'
+      //     '(create);');
+      // out.println('static $classname? _defaultInstance;');
 
       generateFieldsAccessorsMutators(out);
       mixin?.injectHelpers(out);
