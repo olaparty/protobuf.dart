@@ -164,7 +164,7 @@ class MessageGenerator extends ProtobufContainer {
     if (usage.protoFileUri == fileGen.protoFileUri) {
       return name;
     }
-    return '$fileImportPrefix.$name';
+    return '$fileImportPrefix$name';
   }
 
   /// Adds all mixins used in this message and any submessages.
@@ -293,29 +293,29 @@ class MessageGenerator extends ProtobufContainer {
     var mixinClause = '';
     if (mixin != null) {
       var mixinNames =
-          mixin.findMixinsToApply().map((m) => '$mixinImportPrefix.${m.name}');
+          mixin.findMixinsToApply().map((m) => '${mixinImportPrefix}${m.name}');
       mixinClause = ' with ${mixinNames.join(", ")}';
     }
 
-    final conditionalPackageName = 'const $protobufImportPrefix.PackageName(' +
+    final conditionalPackageName = 'const ${protobufImportPrefix}PackageName(' +
         configurationDependent('protobuf.omit_message_names', quoted(package)) +
         ')';
 
     var packageClause =
         package == '' ? '' : ', package: $conditionalPackageName';
     var proto3JsonClause = (mixin?.hasProto3JsonHelpers ?? false)
-        ? ', toProto3Json: $mixinImportPrefix.${mixin.name}.toProto3JsonHelper, '
-            'fromProto3Json: $mixinImportPrefix.${mixin.name}.fromProto3JsonHelper'
+        ? ', toProto3Json: ${mixinImportPrefix}${mixin.name}.toProto3JsonHelper, '
+            'fromProto3Json: ${mixinImportPrefix}${mixin.name}.fromProto3JsonHelper'
         : '';
     out.addAnnotatedBlock(
-        'class $classname extends $protobufImportPrefix.GeneratedMessage$mixinClause {',
+        'class $classname extends ${protobufImportPrefix}GeneratedMessage$mixinClause {',
         '}', [
       NamedLocation(
           name: classname, fieldPathSegment: fieldPath, start: 'class '.length)
     ], () {
       for (var oneof in _oneofNames) {
         out.addBlock(
-            'static const $coreImportPrefix.Map<$coreImportPrefix.int, ${oneof.oneofEnumName}> ${oneof.byTagMapName} = {',
+            'static const ${coreImportPrefix}Map<${coreImportPrefix}int, ${oneof.oneofEnumName}> ${oneof.byTagMapName} = {',
             '};', () {
           for (var field in _oneofFields[oneof.index]) {
             final oneofMemberName =
@@ -329,8 +329,8 @@ class MessageGenerator extends ProtobufContainer {
       final conditionalMessageName = configurationDependent(
           'protobuf.omit_message_names', quoted(messageName));
       out.addBlock(
-          'static final $protobufImportPrefix.BuilderInfo _i = '
-              '$protobufImportPrefix.BuilderInfo($conditionalMessageName'
+          'static final ${protobufImportPrefix}BuilderInfo _i = '
+              '${protobufImportPrefix}BuilderInfo($conditionalMessageName'
               '$packageClause'
               ', createEmptyInstance: create'
               '$proto3JsonClause)',
@@ -401,19 +401,19 @@ class MessageGenerator extends ProtobufContainer {
         out.println(') => create();');
       }
       out.println(
-          'factory $classname.fromBuffer($coreImportPrefix.List<$coreImportPrefix.int> i,'
-          ' [$protobufImportPrefix.ExtensionRegistry r = $protobufImportPrefix.ExtensionRegistry.EMPTY])'
+          'factory $classname.fromBuffer(${coreImportPrefix}List<${coreImportPrefix}int> i,'
+          ' [${protobufImportPrefix}ExtensionRegistry r = ${protobufImportPrefix}ExtensionRegistry.EMPTY])'
           ' => create()..mergeFromBuffer(i, r);');
-      out.println('factory $classname.fromJson($coreImportPrefix.String i,'
-          ' [$protobufImportPrefix.ExtensionRegistry r = $protobufImportPrefix.ExtensionRegistry.EMPTY])'
+      out.println('factory $classname.fromJson(${coreImportPrefix}String i,'
+          ' [${protobufImportPrefix}ExtensionRegistry r = ${protobufImportPrefix}ExtensionRegistry.EMPTY])'
           ' => create()..mergeFromJson(i, r);');
-      out.println('''@$coreImportPrefix.Deprecated(
+      out.println('''@${coreImportPrefix}Deprecated(
 'Using this can add significant overhead to your binary. '
 'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
 'Will be removed in next major version')''');
       out.println('$classname clone() =>'
           ' $classname()..mergeFromMessage(this);');
-      out.println('''@$coreImportPrefix.Deprecated(
+      out.println('''@${coreImportPrefix}Deprecated(
 'Using this can add significant overhead to your binary. '
 'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
 'Will be removed in next major version')''');
@@ -422,20 +422,20 @@ class MessageGenerator extends ProtobufContainer {
           ' as $classname;'
           ' // ignore: deprecated_member_use');
 
-      out.println('$protobufImportPrefix.BuilderInfo get info_ => _i;');
+      out.println('${protobufImportPrefix}BuilderInfo get info_ => _i;');
 
       // Factory functions which can be used as default value closures.
-      out.println("@$coreImportPrefix.pragma('dart2js:noInline')");
+      out.println("@${coreImportPrefix}pragma('dart2js:noInline')");
       out.println('static $classname create() => $classname._();');
       out.println('$classname createEmptyInstance() => create();');
 
       out.println(
-          'static $protobufImportPrefix.PbList<$classname> createRepeated() =>'
-          ' $protobufImportPrefix.PbList<$classname>();');
-      out.println("@$coreImportPrefix.pragma('dart2js:noInline')");
+          'static ${protobufImportPrefix}PbList<$classname> createRepeated() =>'
+          ' ${protobufImportPrefix}PbList<$classname>();');
+      out.println("@${coreImportPrefix}pragma('dart2js:noInline')");
       out.println('static $classname getDefault() =>'
           ' _defaultInstance ??='
-          ' $protobufImportPrefix.GeneratedMessage.\$_defaultFor<$classname>'
+          ' ${protobufImportPrefix}GeneratedMessage.\$_defaultFor<$classname>'
           '(create);');
       out.println('static $classname? _defaultInstance;');
 
@@ -575,13 +575,13 @@ class MessageGenerator extends ProtobufContainer {
         _emitOverrideIf(field.overridesHasMethod, out);
         _emitIndexAnnotation(field.number, out);
         out.printlnAnnotated(
-            '$coreImportPrefix.bool ${names.hasMethodName}() =>'
+            '${coreImportPrefix}bool ${names.hasMethodName}() =>'
             ' \$_has(${field.index});',
             [
               NamedLocation(
                   name: names.hasMethodName,
                   fieldPathSegment: memberFieldPath,
-                  start: '$coreImportPrefix.bool '.length)
+                  start: '${coreImportPrefix}bool '.length)
             ]);
       }
       _emitDeprecatedIf(field.isDeprecated, out);
@@ -617,25 +617,25 @@ class MessageGenerator extends ProtobufContainer {
     if (isMapField) {
       return '\$_getMap($index)';
     }
-    if (fieldType == '$coreImportPrefix.String') {
+    if (fieldType == '${coreImportPrefix}String') {
       if (defaultExpr == '""' || defaultExpr == "''") {
         return '\$_getSZ($index)';
       }
       return '\$_getS($index, $defaultExpr)';
     }
-    if (fieldType == '$coreImportPrefix.bool') {
+    if (fieldType == '${coreImportPrefix}bool') {
       if (defaultExpr == 'false') {
         return '\$_getBF($index)';
       }
       return '\$_getB($index, $defaultExpr)';
     }
-    if (fieldType == '$coreImportPrefix.int') {
+    if (fieldType == '${coreImportPrefix}int') {
       if (defaultExpr == '0') {
         return '\$_getIZ($index)';
       }
       return '\$_getI($index, $defaultExpr)';
     }
-    if (fieldType == '$_fixnumImportPrefix.Int64' && defaultExpr == 'null') {
+    if (fieldType == '${_fixnumImportPrefix}Int64' && defaultExpr == 'null') {
       return '\$_getI64($index)';
     }
     if (defaultExpr == 'null') {
@@ -647,18 +647,18 @@ class MessageGenerator extends ProtobufContainer {
   void _emitDeprecatedIf(bool condition, IndentingWriter out) {
     if (condition) {
       out.println(
-          '@$coreImportPrefix.Deprecated(\'This field is deprecated.\')');
+          '@${coreImportPrefix}Deprecated(\'This field is deprecated.\')');
     }
   }
 
   void _emitOverrideIf(bool condition, IndentingWriter out) {
     if (condition) {
-      out.println('@$coreImportPrefix.override');
+      out.println('@${coreImportPrefix}override');
     }
   }
 
   void _emitIndexAnnotation(int index, IndentingWriter out) {
-    out.println('@$protobufImportPrefix.TagNumber($index)');
+    out.println('@${protobufImportPrefix}TagNumber($index)');
   }
 
   void generateEnums(IndentingWriter out) {
@@ -687,7 +687,7 @@ class MessageGenerator extends ProtobufContainer {
     var nestedEnumNames =
         _enumGenerators.map((e) => e.getJsonConstant(fileGen)).toList();
 
-    out.println('@$coreImportPrefix.Deprecated'
+    out.println('@${coreImportPrefix}Deprecated'
         '(\'Use ${toplevelParent.binaryDescriptorName} instead\')');
     out.addBlock('const $name = const {', '};', () {
       for (var key in json.keys) {

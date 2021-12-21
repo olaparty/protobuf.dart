@@ -8,26 +8,26 @@ part of '../protoc.dart';
 
 final _dartIdentifier = RegExp(r'^\w+$');
 final _formatter = DartFormatter();
-const String _convertImportPrefix = r'convert';
+const String _convertImportPrefix = r'';
 
-const String _fixnumImportPrefix = r'fixnum';
-const String _typedDataImportPrefix = r'typed_data';
+const String _fixnumImportPrefix = r'';
+const String _typedDataImportPrefix = r'';
 const String _protobufImport =
-    "import 'package:protobuf/protobuf.dart' as $protobufImportPrefix;";
-const String _asyncImport = "import 'dart:async' as $asyncImportPrefix;";
-const String _coreImport = "import 'dart:core' as $coreImportPrefix;";
+    "import 'package:protobuf/protobuf.dart';";
+const String _asyncImport = "import 'dart:async';";
+const String _coreImport = "import 'dart:core';";
 const String _typedDataImport =
-    "import 'dart:typed_data' as $_typedDataImportPrefix;";
-const String _convertImport = "import 'dart:convert' as $_convertImportPrefix;";
+    "import 'dart:typed_data';";
+const String _convertImport = "import 'dart:convert';";
 
 const String _grpcImport =
-    "import 'package:grpc/service_api.dart' as $grpcImportPrefix;";
+    "import 'package:grpc/service_api.dart';";
 
 /// Generates code that will evaluate to the empty string if
 /// `const bool.fromEnvironment(envName)` is `true` and evaluate to [value]
 /// otherwise.
 String configurationDependent(String envName, String value) {
-  return 'const $coreImportPrefix.bool.fromEnvironment(${quoted(envName)})'
+  return 'const ${coreImportPrefix}bool.fromEnvironment(${quoted(envName)})'
       ' ? \'\' '
       ': $value';
 }
@@ -251,7 +251,7 @@ class FileGenerator extends ProtobufContainer {
         files.add(makeFile('.pbgrpc.dart', generateGrpcFile(config)));
       }
     } else {
-      files.add(makeFile('.pbserver.dart', generateServerFile(config)));
+      // files.add(makeFile('.pbserver.dart', generateServerFile(config)));
     }
     return files;
   }
@@ -283,7 +283,7 @@ class FileGenerator extends ProtobufContainer {
           x.generate(out);
         }
         out.println(
-            'static void registerAllExtensions($protobufImportPrefix.ExtensionRegistry '
+            'static void registerAllExtensions(${protobufImportPrefix}ExtensionRegistry '
             'registry) {');
         for (var x in extensionGenerators) {
           out.println('  registry.add(${x.name});');
@@ -314,7 +314,7 @@ class FileGenerator extends ProtobufContainer {
 
     if (_needsFixnumImport) {
       out.println(
-          "import 'package:fixnum/fixnum.dart' as $_fixnumImportPrefix;");
+          "import 'package:fixnum/fixnum.dart';");
     }
 
     if (_needsProtobufImport) {
@@ -324,7 +324,7 @@ class FileGenerator extends ProtobufContainer {
 
     final mixinImports = findMixinImports();
     for (var libraryUri in mixinImports) {
-      out.println("import '$libraryUri' as $mixinImportPrefix;");
+      out.println("import '$libraryUri';");
     }
     if (mixinImports.isNotEmpty) out.println();
 
@@ -522,9 +522,9 @@ class FileGenerator extends ProtobufContainer {
     var descriptorText = base64Encode(descriptor.writeToBuffer());
     out.println('/// Descriptor for `$name`. Decode as a '
         '`${descriptor.info_.qualifiedMessageName}`.');
-    out.println('final $_typedDataImportPrefix.Uint8List '
+    out.println('final ${_typedDataImportPrefix}Uint8List '
         '$identifierName = '
-        '$_convertImportPrefix.base64Decode(\'$descriptorText\');');
+        '${_convertImportPrefix}base64Decode(\'$descriptorText\');');
   }
 
   /// Returns the contents of the .pbjson.dart file for this .proto file.
@@ -614,7 +614,7 @@ class FileGenerator extends ProtobufContainer {
     // will evaluate to true not just for the main .pb.dart file based off
     // the proto file, but also for the .pbserver.dart, .pbgrpc.dart files.
     if ((extension == '.pb.dart') || protoFileUri != target.protoFileUri) {
-      out.print(' as ${target.fileImportPrefix}');
+      out.print('}');
     }
     out.println(';');
   }
