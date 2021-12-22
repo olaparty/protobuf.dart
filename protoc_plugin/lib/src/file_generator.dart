@@ -254,7 +254,7 @@ class FileGenerator extends ProtobufContainer {
         files.add(makeFile('.pbgrpc.dart', generateGrpcFile(config)));
       }
     } if (options.useCustomeRpc){
-      files.add(makeFile('.api.dart', generateApiFile(config)));
+      files.add(makeFile('.twirp.dart', generateApiFile(config)));
     } else {
       // files.add(makeFile('.pbserver.dart', generateServerFile(config)));
     }
@@ -496,7 +496,7 @@ class FileGenerator extends ProtobufContainer {
     _writeHeading(out);
 
     out.println(_asyncImport);
-    out.println();
+    out.println('import \'package:bbcore/bbcore.dart\';');
     out.println(_coreImport);
 
     // Import .pb.dart files needed for requests and responses.
