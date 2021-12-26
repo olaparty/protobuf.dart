@@ -234,10 +234,11 @@ class FileGenerator extends ProtobufContainer {
 
     var mainWriter = generateMainFile(config);
     var enumWriter = generateEnumFile(config);
+    var hasEmnum = enumCount > 0;
 
     final files = [
       makeFile('.pb.dart', mainWriter.toString()),
-      makeFile('.pbenum.dart', enumWriter.toString()),
+      if(hasEmnum) makeFile('.pbenum.dart', enumWriter.toString()),
       makeFile('.pbjson.dart', generateJsonFile(config)),
     ];
 
@@ -245,7 +246,7 @@ class FileGenerator extends ProtobufContainer {
       files.addAll([
         makeFile('.pb.dart.meta',
             mainWriter.sourceLocationInfo.writeToJson().toString()),
-        makeFile('.pbenum.dart.meta',
+        if(hasEmnum) makeFile('.pbenum.dart.meta',
             enumWriter.sourceLocationInfo.writeToJson().toString())
       ]);
     }
