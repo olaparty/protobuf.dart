@@ -110,8 +110,9 @@ class _CustomApiMethod {
 
   final String _argumentType;
   final String _clientReturnType;
+  final String _responseType;
 
-  _CustomApiMethod._(this._dartName, this._argumentType, this._clientReturnType);
+  _CustomApiMethod._(this._dartName, this._argumentType, this._clientReturnType, this._responseType);
 
   factory _CustomApiMethod(CustomServiceGenerator service, GenerationContext ctx, MethodDescriptorProto method) {
     final grpcName = method.name;
@@ -126,17 +127,17 @@ class _CustomApiMethod {
     final argumentType = requestType;
     final clientReturnType = '$_responseFuture<$responseType>';
 
-    return _CustomApiMethod._(dartName, argumentType, clientReturnType);
+    return _CustomApiMethod._(dartName, argumentType, clientReturnType, responseType);
   }
 
   void generateClientStub(IndentingWriter out) {
     out.println();
-    out.addBlock('$_clientReturnType $_dartName($_argumentType request) {', '}', () {
+    out.addBlock('$_clientReturnType $_dartName($_argumentType request) async {', '}', () {
     out.println("String url = '\${System.domain}$_apiPrefix$_dartName';");
 
     out.println("XhrResponse response = await Xhr.postPb(url, request.toJson(),headers: {'Accept': 'application/protobuf','Content-Type': 'application/protobuf'},throwOnError: false);");
     out.println("if (response.error == null) {");
-    out.println("return $_clientReturnType.fromBuffer(response.bodyBytes);");
+    out.println("return $_responseType.fromBuffer(response.bodyBytes);");
     out.println("}else if(response.error?.code == XhrErrorCode.HttpStatus){");
     out.println("  // TODO: parse http code ");
     out.println("}");

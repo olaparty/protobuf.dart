@@ -431,7 +431,7 @@ class MessageGenerator extends ProtobufContainer {
       out.println('$classname clone() => throw UnimplementedError();');
 
       // Generate toJson method
-      out.println('Map<String, dynamic>  toJson() {');
+      out.println('Map<String, dynamic>  toJson() => {');
       for (final field in _fieldList) {
        
         if (field.isDeprecated) {
@@ -439,8 +439,13 @@ class MessageGenerator extends ProtobufContainer {
               '    // ignore: deprecated_member_use_from_same_package');
         }
         if (field.isRepeated){
-           out.println(
-              '    "${field.memberNames.fieldName}" : ${field.memberNames.fieldName}.map((val) => val.toJson()).toList();,');
+          if(field.baseType.typeConstantSuffix == 'M') {
+            out.println(
+              '    "${field.memberNames.fieldName}" : ${field.memberNames.fieldName}.map((val) => val.toJson()).toList(),');
+          }else{
+            out.println(
+              '    "${field.memberNames.fieldName}" : ${field.memberNames.fieldName},');
+          }
         } else if (field.isMapField) {
           out.println(
               '    "${field.memberNames.fieldName}" : ${field.memberNames.fieldName}.toJson(),');
@@ -449,10 +454,10 @@ class MessageGenerator extends ProtobufContainer {
               '    "${field.memberNames.fieldName}" : ${field.memberNames.fieldName},');
         }
       }
-      out.println('  }');
+      out.println('  };');
 
       // Generate toRequestBody method
-      out.println('Map<String, String>  toRequestBody() {');
+      out.println('Map<String, String>  toRequestBody() => {');
       for (final field in _fieldList) {
        
         if (field.isDeprecated) {
@@ -460,8 +465,13 @@ class MessageGenerator extends ProtobufContainer {
               '    // ignore: deprecated_member_use_from_same_package');
         }
         if (field.isRepeated){
-           out.println(
-              '    "${field.memberNames.fieldName}" : jsonEncode(${field.memberNames.fieldName}.map((val) => val.toJson()).toList());,');
+          if(field.baseType.typeConstantSuffix == 'M') {
+            out.println(
+              '    "${field.memberNames.fieldName}" : jsonEncode(${field.memberNames.fieldName}.map((val) => val.toJson()).toList()),');
+          }else{
+            out.println(
+              '    "${field.memberNames.fieldName}" : jsonEncode(${field.memberNames.fieldName}),');
+          }
         } else if (field.isMapField) {
           out.println(
               '    "${field.memberNames.fieldName}" : jsonEncode(${field.memberNames.fieldName}.toJson()),');
@@ -470,7 +480,7 @@ class MessageGenerator extends ProtobufContainer {
               '    "${field.memberNames.fieldName}" : "\$${field.memberNames.fieldName}",');
         }
       }
-      out.println('  }');
+      out.println('  };');
 
 
       // out.println(
