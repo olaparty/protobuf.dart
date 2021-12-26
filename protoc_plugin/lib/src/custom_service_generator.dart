@@ -132,8 +132,15 @@ class _CustomApiMethod {
   void generateClientStub(IndentingWriter out) {
     out.println();
     out.addBlock('$_clientReturnType $_dartName($_argumentType request) {', '}', () {
-      out.println('String url = \'$_apiPrefix$_dartName\';');
-      out.println('return Xhr.postPb(url, request.toJson());');
+    out.println("String url = '\${System.domain}$_apiPrefix$_dartName';");
+
+    out.println("XhrResponse response = await Xhr.postPb(url, request.toJson(),headers: {'Accept': 'application/protobuf','Content-Type': 'application/protobuf'},throwOnError: false);");
+    out.println("if (response.error == null) {");
+    out.println("return $_clientReturnType.fromBuffer(response.bodyBytes);");
+    out.println("}else if(response.error?.code == XhrErrorCode.HttpStatus){");
+    out.println("  // TODO: parse http code ");
+    out.println("}");
+    out.println("return null;");
     });
   }
 

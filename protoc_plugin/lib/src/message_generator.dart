@@ -430,6 +430,49 @@ class MessageGenerator extends ProtobufContainer {
       out.println('$classname createEmptyInstance() => create();');
       out.println('$classname clone() => throw UnimplementedError();');
 
+      // Generate toJson method
+      out.println('Map<String, dynamic>  toJson() {');
+      for (final field in _fieldList) {
+       
+        if (field.isDeprecated) {
+          out.println(
+              '    // ignore: deprecated_member_use_from_same_package');
+        }
+        if (field.isRepeated){
+           out.println(
+              '    "${field.memberNames.fieldName}" : ${field.memberNames.fieldName}.map((val) => val.toJson()).toList();,');
+        } else if (field.isMapField) {
+          out.println(
+              '    "${field.memberNames.fieldName}" : ${field.memberNames.fieldName}.toJson(),');
+        } else {
+          out.println(
+              '    "${field.memberNames.fieldName}" : ${field.memberNames.fieldName},');
+        }
+      }
+      out.println('  }');
+
+      // Generate toRequestBody method
+      out.println('Map<String, String>  toRequestBody() {');
+      for (final field in _fieldList) {
+       
+        if (field.isDeprecated) {
+          out.println(
+              '    // ignore: deprecated_member_use_from_same_package');
+        }
+        if (field.isRepeated){
+           out.println(
+              '    "${field.memberNames.fieldName}" : jsonEncode(${field.memberNames.fieldName}.map((val) => val.toJson()).toList());,');
+        } else if (field.isMapField) {
+          out.println(
+              '    "${field.memberNames.fieldName}" : jsonEncode(${field.memberNames.fieldName}.toJson()),');
+        } else {
+          out.println(
+              '    "${field.memberNames.fieldName}" : "\$${field.memberNames.fieldName}",');
+        }
+      }
+      out.println('  }');
+
+
       // out.println(
       //     'static ${protobufImportPrefix}PbList<$classname> createRepeated() =>'
       //     ' ${protobufImportPrefix}PbList<$classname>();');

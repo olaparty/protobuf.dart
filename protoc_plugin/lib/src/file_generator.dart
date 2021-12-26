@@ -14,6 +14,7 @@ const String _fixnumImportPrefix = r'';
 const String _typedDataImportPrefix = r'';
 const String _protobufImport =
     "import 'package:protobuf/protobuf.dart';";
+const String _bbcoreImport = "import 'package:bbcore/bbcore.dart';";
 const String _asyncImport = "import 'dart:async';";
 const String _coreImport = "import 'dart:core';";
 const String _typedDataImport =
@@ -497,7 +498,8 @@ class FileGenerator extends ProtobufContainer {
     _writeHeading(out);
 
     out.println(_asyncImport);
-    out.println('import \'package:bbcore/bbcore.dart\';');
+    out.println(_bbcoreImport);
+    out.println(_convertImport);
     out.println(_coreImport);
 
     // Import .pb.dart files needed for requests and responses.
@@ -645,6 +647,8 @@ class FileGenerator extends ProtobufContainer {
       FileGenerator target, String extension) {
     var resolvedImport =
         config.resolveImport(target.protoFileUri, protoFileUri, extension);
+    if(target.fullName == 'google.protobuf') return;
+    
     out.print("import '$resolvedImport'");
 
     // .pb.dart files should always be prefixed--the protoFileUri check
