@@ -255,7 +255,7 @@ class FileGenerator extends ProtobufContainer {
       if (grpcGenerators.isNotEmpty) {
         files.add(makeFile('.pbgrpc.dart', generateGrpcFile(config)));
       }
-    } if (options.useCustomeRpc){
+    } if (options.useCustomeRpc && apimethodCount > 0){
       files.add(makeFile('.twirp.dart', generateApiFile(config)));
     } else {
       // files.add(makeFile('.pbserver.dart', generateServerFile(config)));
@@ -443,6 +443,14 @@ class FileGenerator extends ProtobufContainer {
     var count = enumGenerators.length;
     for (var m in messageGenerators) {
       count += m.enumCount;
+    }
+    return count;
+  }
+  /// Returns the number of enum types generated in the .pbenum.dart file.
+  int get apimethodCount {
+    var count = 0;
+    for (var m in apiServiceGenerators) {
+      count += m._methods.length;
     }
     return count;
   }
@@ -648,7 +656,7 @@ class FileGenerator extends ProtobufContainer {
     var resolvedImport =
         config.resolveImport(target.protoFileUri, protoFileUri, extension);
     if(target.fullName == 'google.protobuf') return;
-    
+
     out.print("import '$resolvedImport'");
 
     // .pb.dart files should always be prefixed--the protoFileUri check
