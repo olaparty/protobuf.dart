@@ -12,3 +12,10 @@ It contains:
 
  - [protoc_plugin](protoc_plugin/) A Dart back-end for the protoc compiler.
  - [protobuf](protobuf/) Support library for the generated code.
+
+Build and test
+ ```shell
+ dart compile exe protoc_plugin/bin/protoc_plugin.dart -S temp -o proto2dart
+ cd protoc_plugin/protos
+ protoc -I . --plugin=protoc-gen-custom=../../proto2dart --custom_out=. plugin.proto 
+ ```

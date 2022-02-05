@@ -134,10 +134,11 @@ class _CustomApiMethod {
     out.println();
     out.addBlock('static $_clientReturnType $_dartName($_argumentType request) async {', '}', () {
     out.println("String url = '\${System.domain}$_apiPrefix$_dartName';");
+    out.println("final proto = ProtobufOptions(requestMessage: request, responseMessage: $_responseType());");
 
-    out.println("XhrResponse response = await Xhr.postPb(url, request.toRequestBody(),headers: {'Accept': 'application/protobuf','Content-Type': 'application/protobuf'},throwOnError: false);");
+    out.println("XhrResponse response = await Xhr.postWithPbOptions(url, proto,throwOnError: false);");
     out.println("if (response.error == null) {");
-    out.println("return $_responseType.fromBuffer(response.bodyBytes);");
+    out.println("return proto.responseMessage;");
     out.println("}else if(response.error?.code == XhrErrorCode.HttpStatus){");
     out.println("  // TODO: parse http code inline ");
     out.println("  throw response.error;");
