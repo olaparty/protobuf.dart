@@ -1,1 +1,27 @@
+name: pack
 
+# Controls when the workflow will run
+on:
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  pack:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        sdk: [stable, beta, dev]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - name: Install dependencies
+        run: dart pub get
+      - name: Compile exe
+        run: dart compile exe protoc_plugin/bin/protoc_plugin.dart -S temp -o proto2dart
+      - uses: actions/upload-artifact@v2.3.1
+        with: 
+          path: proto2dart          
