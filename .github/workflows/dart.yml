@@ -16,6 +16,7 @@ jobs:
           sdk: stable
       - name: Install dependencies
         run: dart pub get
+        working-directory: ./protoc_plugin
       - name: Compile exe
         run: dart compile exe protoc_plugin/bin/protoc_plugin.dart -S temp -o proto2dart
       - uses: actions/upload-artifact@v2.3.1
