@@ -7,6 +7,8 @@
 part of '../protoc.dart';
 
 class CustomServiceGenerator {
+  final String serviceName;
+
   final ServiceDescriptorProto _descriptor;
 
   /// The generator of the .pb.dart file that will contain this service.
@@ -32,7 +34,7 @@ class CustomServiceGenerator {
   /// List of gRPC methods.
   final _methods = <_CustomApiMethod>[];
 
-  CustomServiceGenerator(this._descriptor, this.fileGen) {
+  CustomServiceGenerator(this._descriptor, this.fileGen) : serviceName = _descriptor.name {
     final name = _descriptor.name;
     final package = fileGen.package;
 
@@ -111,8 +113,9 @@ class _CustomApiMethod {
   final String _argumentType;
   final String _clientReturnType;
   final String _responseType;
+  final String _serviceName;
 
-  _CustomApiMethod._(this._dartName, this._argumentType, this._clientReturnType, this._responseType);
+  _CustomApiMethod._(this._serviceName, this._dartName, this._argumentType, this._clientReturnType, this._responseType);
 
   factory _CustomApiMethod(CustomServiceGenerator service, GenerationContext ctx, MethodDescriptorProto method) {
     final grpcName = method.name;
@@ -125,20 +128,25 @@ class _CustomApiMethod {
     final responseType = service._getDartClassName(method.outputType);
 
     final argumentType = requestType;
-    final clientReturnType = '$_responseFuture<$responseType>';
+    final clientReturnType = '$_responseFuture<$responseType?>';
 
-    return _CustomApiMethod._(dartName, argumentType, clientReturnType, responseType);
+    var serviceName = service.serviceName ?? '';
+    if(serviceName.isNotEmpty){
+      serviceName = '${serviceName.substring(0, 1).toLowerCase()}${serviceName.substring(1)}';
+    }
+
+    return _CustomApiMethod._(serviceName, dartName, argumentType, clientReturnType, responseType);
   }
 
   void generateClientStub(IndentingWriter out) {
     out.println();
     out.addBlock('static $_clientReturnType $_dartName($_argumentType request) async {', '}', () {
-    out.println("String url = '\${System.domain}$_apiPrefix$_dartName';");
+    out.println("String url = '\${System.domain}$_apiPrefix$_serviceName/$_dartName';");
     out.println("final proto = ProtobufOptions(requestMessage: request, responseMessage: $_responseType());");
 
     out.println("XhrResponse response = await Xhr.postWithPbOptions(url, proto,throwOnError: false);");
     out.println("if (response.error == null) {");
-    out.println("return proto.responseMessage;");
+    out.println("return proto.responseMessage as $_responseType;");
     out.println("}else if(response.error?.code == XhrErrorCode.HttpStatus){");
     out.println("  // TODO: parse http code inline ");
     out.println("  throw response.error;");
