@@ -591,3 +591,6 @@ int countRealOneofs(DescriptorProto descriptor) {
 
 String lowerCaseFirstLetter(String input) =>
     input[0].toLowerCase() + input.substring(1);
+
+String upperCaseFirstLetter(String input) =>
+    input[0].toUpperCase() + input.substring(1);

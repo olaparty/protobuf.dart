@@ -119,7 +119,7 @@ class _CustomApiMethod {
 
   factory _CustomApiMethod(CustomServiceGenerator service, GenerationContext ctx, MethodDescriptorProto method) {
     final grpcName = method.name;
-    final dartName = lowerCaseFirstLetter(grpcName);
+    final dartName = grpcName; //lowerCaseFirstLetter(grpcName);
 
     service._addDependency(ctx, method.inputType, 'input type of $grpcName');
     service._addDependency(ctx, method.outputType, 'output type of $grpcName');
@@ -130,10 +130,10 @@ class _CustomApiMethod {
     final argumentType = requestType;
     final clientReturnType = '$_responseFuture<$responseType?>';
 
-    var serviceName = service.serviceName ?? '';
-    if(serviceName.isNotEmpty){
-      serviceName = '${serviceName.substring(0, 1).toLowerCase()}${serviceName.substring(1)}';
-    }
+    var serviceName = service.serviceName ?? ''; // upperCaseFirstLetter(service.serviceName);
+    // if(serviceName.isNotEmpty){
+    //   serviceName = '${serviceName.substring(0, 1).toUpperCase()}${serviceName.substring(1)}';
+    // }
 
     return _CustomApiMethod._(serviceName, dartName, argumentType, clientReturnType, responseType);
   }
