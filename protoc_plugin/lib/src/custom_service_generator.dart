@@ -155,7 +155,7 @@ class _CustomApiMethod {
     });
   }
 
-  static final String _apiPrefix = 'api/';
+  static final String _apiPrefix = 'go/';
 
   static final String _responseFuture = '${grpcImportPrefix}Future';
 }
