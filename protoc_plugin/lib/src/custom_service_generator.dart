@@ -148,8 +148,7 @@ class _CustomApiMethod {
     out.println("if (response.error == null) {");
     out.println("return proto.responseMessage as $_responseType;");
     out.println("}else if(response.error?.code == XhrErrorCode.HttpStatus){");
-    out.println("  // TODO: parse http code inline ");
-    out.println("  throw response.error;");
+    out.println("  response.error?.toastMessageOrThrow();");
     out.println("}");
     out.println("return null;");
     });
