@@ -14,7 +14,7 @@ const String _fixnumImportPrefix = r'';
 const String _typedDataImportPrefix = r'';
 const String _protobufImport =
     "import 'package:protobuf/protobuf.dart';";
-const String _bbcoreImport = "import 'package:bbcore/bbcore.dart';";
+const String _bbcoreImport = "// ignore: import_of_legacy_library_into_null_safe\nimport 'package:bbcore/bbcore.dart';";
 const String _asyncImport = "import 'dart:async';";
 const String _coreImport = "import 'dart:core';";
 const String _typedDataImport =

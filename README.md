@@ -15,6 +15,7 @@ It contains:
 
 Build and test
  ```shell
+ cd protoc_plugin && dart pub get && cd -
  dart compile exe protoc_plugin/bin/protoc_plugin.dart -S temp -o proto2dart
  cd protoc_plugin/protos
  protoc -I . --plugin=protoc-gen-custom=../../proto2dart --custom_out=. plugin.proto 

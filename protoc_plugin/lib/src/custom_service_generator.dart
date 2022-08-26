@@ -140,7 +140,7 @@ class _CustomApiMethod {
 
   void generateClientStub(IndentingWriter out) {
     out.println();
-    out.addBlock('static $_clientReturnType $_dartName($_argumentType request) async {', '}', () {
+    out.addBlock('static $_clientReturnType $_dartName($_argumentType request, {bool toastMessage = true, bool throwError = true}) async {', '}', () {
     out.println("String url = '\${System.domain}$_apiPrefix$_serviceName/$_dartName';");
     out.println("final proto = ProtobufOptions(requestMessage: request, responseMessage: $_responseType());");
 
@@ -148,7 +148,7 @@ class _CustomApiMethod {
     out.println("if (response.error == null) {");
     out.println("return proto.responseMessage as $_responseType;");
     out.println("}else if(response.error?.code == XhrErrorCode.HttpStatus){");
-    out.println("  response.error?.toastMessageOrThrow();");
+    out.println("  response.error?.toastMessageOrThrow(toastMessage: toastMessage, throwError: throwError);");
     out.println("}");
     out.println("return null;");
     });
