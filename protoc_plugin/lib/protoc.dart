@@ -1,8 +1,5 @@
-// @dart=2.11
-
 import 'dart:convert';
 
-import 'package:dart_style/dart_style.dart';
 import 'package:protobuf/protobuf.dart';
 
 import 'const_generator.dart' show writeJsonConst;

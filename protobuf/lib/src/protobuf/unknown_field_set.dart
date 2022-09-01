@@ -4,6 +4,7 @@
 
 part of protobuf;
 
+/// A set of unknown fields in a [GeneratedMessage].
 class UnknownFieldSet {
   static final UnknownFieldSet emptyUnknownFieldSet = UnknownFieldSet()
     .._markReadOnly();
@@ -26,6 +27,11 @@ class UnknownFieldSet {
   void clear() {
     _ensureWritable('clear');
     _fields.clear();
+  }
+
+  void clearField(int tagNumber) {
+    _ensureWritable('clearField');
+    _fields.remove(tagNumber);
   }
 
   UnknownFieldSetField? getField(int tagNumber) => _fields[tagNumber];
@@ -162,10 +168,6 @@ class UnknownFieldSet {
             ..write(value._toString('$indent  '))
             ..write('$indent}\n');
         } else {
-          if (value is ByteData) {
-            // TODO(antonm): fix for longs.
-            value = value.getUint64(0, Endian.little);
-          }
           stringBuffer.write('$indent$tag: $value\n');
         }
       }
@@ -190,11 +192,12 @@ class UnknownFieldSet {
 
   void _ensureWritable(String methodName) {
     if (_isReadOnly) {
-      frozenMessageModificationHandler('UnknownFieldSet', methodName);
+      _throwFrozenMessageModificationError('UnknownFieldSet', methodName);
     }
   }
 }
 
+/// An unknown field in a [UnknownFieldSet].
 class UnknownFieldSetField {
   List<List<int>> _lengthDelimited = <List<int>>[];
   List<Int64> _varints = <Int64>[];
@@ -306,10 +309,4 @@ class UnknownFieldSetField {
   void addVarint(Int64 value) {
     varints.add(value);
   }
-
-  bool hasRequiredFields() => false;
-
-  bool isInitialized() => true;
-
-  int get length => values.length;
 }

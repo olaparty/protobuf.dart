@@ -1,4 +1,3 @@
-#!/usr/bin/env dart
 // Copyright (c) 2018, the Dart project authors.  Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
@@ -199,6 +198,19 @@ void main() {
     expect(m.hashCode, isNot(m3.hashCode));
   });
 
+  test('Unitialized map field is equal to initialized', () {
+    final testMap1 = TestMap();
+    final testMap2 = TestMap();
+
+    // Do a trivial operation to initialize the map field of testMap2.
+    testMap2.int32ToStringField.clear();
+
+    expect(testMap1, equals(testMap2));
+    expect(testMap2, equals(testMap1));
+
+    expect(testMap1.hashCode, equals(testMap2.hashCode));
+  });
+
   test('merge from other message', () {
     var testMap = TestMap();
     _setValues(testMap);
@@ -301,42 +313,28 @@ void main() {
     expect(value is Map<int, List<int>>, true);
   });
 
-  test('named optional arguments in cosntructor', () {
-    final testMap = TestMap(
-      int32ToInt32Field: {1: 11, 2: 22, 3: 33},
-      int32ToStringField: {1: '11', 2: '22', 3: '33'},
-      int32ToBytesField: {
-        1: utf8.encode('11'),
-        2: utf8.encode('22'),
-        3: utf8.encode('33')
-      },
-      int32ToEnumField: {
-        1: TestMap_EnumValue.DEFAULT,
-        2: TestMap_EnumValue.BAR,
-        3: TestMap_EnumValue.BAZ
-      },
-      int32ToMessageField: {
-        1: TestMap_MessageValue(value: 11),
-        2: TestMap_MessageValue(value: 22),
-        3: TestMap_MessageValue(value: 33)
-      },
-      stringToInt32Field: {'1': 11, '2': 22, '3': 33},
-    );
-    _expectMapValuesSet(testMap);
-  });
-
   test('Parses null keys and values', () {
     // Use a desugared version of the message to create missing
     // values in the serialized form.
-    final d = Desugared(int32ToStringField: [
-      Desugared_Int32ToString(key: null, value: 'abc'),
-      Desugared_Int32ToString(key: 42, value: null),
-      Desugared_Int32ToString(key: 11, value: 'def'),
-    ], stringToInt32Field: [
-      Desugared_StringToInt32(key: null, value: 11),
-      Desugared_StringToInt32(key: 'abc', value: null),
-      Desugared_StringToInt32(key: 'def', value: 42),
-    ]);
+    final d = Desugared()
+      ..int32ToStringField.add(Desugared_Int32ToString()
+        ..clearKey()
+        ..value = 'abc')
+      ..int32ToStringField.add(Desugared_Int32ToString()
+        ..key = 42
+        ..clearValue())
+      ..int32ToStringField.add(Desugared_Int32ToString()
+        ..key = 11
+        ..value = 'def')
+      ..stringToInt32Field.add(Desugared_StringToInt32()
+        ..clearKey()
+        ..value = 11)
+      ..stringToInt32Field.add(Desugared_StringToInt32()
+        ..key = 'abc'
+        ..clearValue())
+      ..stringToInt32Field.add(Desugared_StringToInt32()
+        ..key = 'def'
+        ..value = 42);
 
     final m = TestMap.fromBuffer(d.writeToBuffer());
     expect(m.int32ToStringField[0], 'abc');
@@ -345,5 +343,108 @@ void main() {
     expect(m.stringToInt32Field['abc'], 0);
     expect(m.stringToInt32Field[''], 11);
     expect(m.stringToInt32Field['def'], 42);
+  });
+
+  test('Map field reads should not affect equality or hash of message', () {
+    final m1 = TestMap.create();
+    final m2 = TestMap.create();
+    expect(m1, equals(m2));
+    expect(m1.hashCode, equals(m2.hashCode));
+    m1.int32ToStringField; // read a map field
+    expect(m1, equals(m2));
+    expect(m1.hashCode, equals(m2.hashCode));
+  });
+
+  test('getField and \$_getMap are in sync', () {
+    final msg1 = TestMap();
+    expect(msg1.hasField(1), false);
+    var map1 = msg1.getField(1) as Map<int, int>;
+    expect(msg1.hasField(1), true);
+    map1[1] = 2;
+    expect(msg1.int32ToInt32Field[1], 2);
+
+    final msg2 = TestMap();
+    expect(msg2.hasField(1), false);
+    var map2 = msg2.$_getMap(0) as Map<int, int>;
+    expect(msg2.hasField(1), true);
+    map2[1] = 2;
+    expect(msg2.int32ToInt32Field[1], 2);
+  });
+
+  test('Parses empty map fields', () {
+    // Map fields are encoded as messages (as length-delimited fields). Check
+    // that we handle 0 length fields. (#719)
+    {
+      final messageBytes = <int>[
+        (5 << 3) | 2, // tag = 5, wire type = 2 (length delimited)
+        0, // length = 0
+      ];
+      final message = TestMap.fromBuffer(messageBytes);
+      expect(
+          message, TestMap()..int32ToMessageField[0] = TestMap_MessageValue());
+    }
+
+    {
+      final messageBytes = <int>[
+        (4 << 3) | 2, // tag = 4, wire type = 2 (length delimited)
+        0, // length = 0
+      ];
+      final message = TestMap.fromBuffer(messageBytes);
+      expect(
+          message, TestMap()..int32ToEnumField[0] = TestMap_EnumValue.DEFAULT);
+    }
+  });
+
+  test('Parses map field with just key', () {
+    // Similar to the case above, but the field just has key (no value)
+    {
+      final messageBytes = <int>[
+        (5 << 3) | 2, // tag = 5, wire type = 2 (length delimited)
+        2, // length = 2
+        (1 << 3) | 0, // tag = 1 (map key), wire type = 0 (varint)
+        1, // key = 1
+      ];
+      final message = TestMap.fromBuffer(messageBytes);
+      expect(
+          message, TestMap()..int32ToMessageField[1] = TestMap_MessageValue());
+    }
+
+    {
+      final messageBytes = <int>[
+        (4 << 3) | 2, // tag = 4, wire type = 2 (length delimited)
+        2, // length = 2
+        (1 << 3) | 0, // tag = 1 (map key), wire type = 0 (varint)
+        1, // key = 1
+      ];
+      final message = TestMap.fromBuffer(messageBytes);
+      expect(
+          message, TestMap()..int32ToEnumField[1] = TestMap_EnumValue.DEFAULT);
+    }
+  });
+
+  test('Parses map field with just key', () {
+    // Similar to the case above, but the field just has value (no key)
+    {
+      final messageBytes = <int>[
+        (5 << 3) | 2, // tag = 5, wire type = 2 (length delimited)
+        2, // length = 2
+        (2 << 3) | 2, // tag = 2 (map value), wire type = 2 (length delimited)
+        0, // length = 0 (empty message)
+      ];
+      final message = TestMap.fromBuffer(messageBytes);
+      expect(
+          message, TestMap()..int32ToMessageField[0] = TestMap_MessageValue());
+    }
+
+    {
+      final messageBytes = <int>[
+        (4 << 3) | 2, // tag = 4, wire type = 2 (length delimited)
+        2, // length = 2
+        (2 << 3) | 2, // tag = 2 (map value), wire type = 2 (length delimited)
+        1, // enum value = 1
+      ];
+      final message = TestMap.fromBuffer(messageBytes);
+      expect(message, TestMap()..int32ToEnumField[0] = TestMap_EnumValue.BAR);
+    }
   });
 }

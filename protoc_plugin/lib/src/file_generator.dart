@@ -2,12 +2,9 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart=2.11
-
 part of '../protoc.dart';
 
 final _dartIdentifier = RegExp(r'^\w+$');
-final _formatter = DartFormatter();
 const String _convertImportPrefix = r'';
 
 const String _fixnumImportPrefix = r'';
@@ -31,6 +28,11 @@ String configurationDependent(String envName, String value) {
   return 'const ${coreImportPrefix}bool.fromEnvironment(${quoted(envName)})'
       ' ? \'\' '
       ': $value';
+}
+
+enum ProtoSyntax {
+  proto2,
+  proto3,
 }
 
 /// Generates the Dart output files for one .proto input file.
@@ -92,16 +94,16 @@ class FileGenerator extends ProtobufContainer {
           throw mixinError('Cycle in parent chain: $cycle');
         }
         parentChain.add(parentName);
-        currentMixin = dartMixins[parentName];
+        currentMixin = dartMixins[parentName]!;
       }
     }
 
     // Turn DartMixins into PbMixins.
     final pbMixins = <String, PbMixin>{};
-    PbMixin resolveMixin(String name) {
+    PbMixin? resolveMixin(String name) {
       if (pbMixins.containsKey(name)) return pbMixins[name];
       if (dartMixins.containsKey(name)) {
-        var dartMixin = dartMixins[name];
+        var dartMixin = dartMixins[name]!;
         var pbMixin = PbMixin(dartMixin.name,
             importFrom: dartMixin.importFrom,
             parent: resolveMixin(dartMixin.parent));
@@ -147,8 +149,13 @@ class FileGenerator extends ProtobufContainer {
   /// True if cross-references have been resolved.
   bool _linked = false;
 
+  final ProtoSyntax syntax;
+
   FileGenerator(this.descriptor, this.options)
-      : protoFileUri = Uri.file(descriptor.name) {
+      : protoFileUri = Uri.file(descriptor.name),
+        syntax = descriptor.syntax == 'proto3'
+            ? ProtoSyntax.proto3
+            : ProtoSyntax.proto2 {
     if (protoFileUri.isAbsolute) {
       // protoc should never generate an import with an absolute path.
       throw 'FAILURE: Import with absolute path is not supported';
@@ -156,7 +163,7 @@ class FileGenerator extends ProtobufContainer {
 
     var declaredMixins = _getDeclaredMixins(descriptor);
     var defaultMixinName =
-        descriptor.options?.getExtension(Dart_options.defaultMixin) as String ??
+        descriptor.options.getExtension(Dart_options.defaultMixin) as String? ??
             '';
     var defaultMixin =
         declaredMixins[defaultMixinName] ?? findMixin(defaultMixinName);
@@ -210,14 +217,19 @@ class FileGenerator extends ProtobufContainer {
 
   @override
   String get package => descriptor.package;
+
   @override
   String get classname => '';
+
   @override
   String get fullName => descriptor.package;
+
   @override
   FileGenerator get fileGen => this;
+
   @override
-  ProtobufContainer get parent => null;
+  ProtobufContainer? get parent => null;
+
   @override
   List<int> get fieldPath => [];
 
@@ -427,6 +439,11 @@ class FileGenerator extends ProtobufContainer {
       out.println();
     }
 
+    for (var publicDependency in descriptor.publicDependency) {
+      _writeExport(out, config,
+          Uri.file(descriptor.dependency[publicDependency]), '.pbenum.dart');
+    }
+
     for (var e in enumGenerators) {
       e.generate(out);
     }
@@ -527,7 +544,7 @@ class FileGenerator extends ProtobufContainer {
     for (var generator in apiServiceGenerators) {
       generator.generate(out);
     }
-    return _formatter.format(out.toString());
+    return out.toString();
   }
 
   /// Returns the contents of the .pbgrpc.dart file for this .proto file.
@@ -561,7 +578,7 @@ class FileGenerator extends ProtobufContainer {
       generator.generate(out);
     }
 
-    return _formatter.format(out.toString());
+    return out.toString();
   }
 
   void writeBinaryDescriptor(IndentingWriter out, String identifierName,

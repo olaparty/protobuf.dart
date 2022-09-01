@@ -4,9 +4,9 @@
 
 syntax = "proto2";
 
-import "dart_options.proto";
-
 package dart_name;
+
+import "dart_options.proto";
 
 message DartName {
   optional string field = 1 [
@@ -36,4 +36,8 @@ message Function {
 
 message Function_ {
   optional string fun1 = 1;
+}
+
+message UnderscoreDigitName {
+  optional string _3d = 1;
 }

@@ -1,9 +1,6 @@
-#!/usr/bin/env dart
 // Copyright (c) 2013, the Dart project authors.  Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-
-// @dart=2.11
 
 import 'dart:collection';
 
@@ -19,9 +16,9 @@ import 'package:test/test.dart';
 import 'golden_file.dart';
 
 void main() {
-  FileDescriptorProto fd;
+  late FileDescriptorProto fd;
   EnumDescriptorProto ed;
-  DescriptorProto md;
+  late DescriptorProto md;
   setUp(() async {
     fd = FileDescriptorProto();
     ed = EnumDescriptorProto()
@@ -76,8 +73,8 @@ void main() {
       ..enumType.add(ed);
   });
   test('testMessageGenerator', () {
-    var options =
-        parseGenerationOptions(CodeGeneratorRequest(), CodeGeneratorResponse());
+    var options = parseGenerationOptions(
+        CodeGeneratorRequest(), CodeGeneratorResponse())!;
 
     var fg = FileGenerator(fd, options);
     var mg = MessageGenerator.topLevel(md, fg, {}, null, <String>{}, 0);
@@ -101,8 +98,8 @@ void main() {
   });
 
   test('testMetadataIndices', () {
-    var options =
-        parseGenerationOptions(CodeGeneratorRequest(), CodeGeneratorResponse());
+    var options = parseGenerationOptions(
+        CodeGeneratorRequest(), CodeGeneratorResponse())!;
     var fg = FileGenerator(fd, options);
     var mg = MessageGenerator.topLevel(md, fg, {}, null, <String>{}, 0);
 

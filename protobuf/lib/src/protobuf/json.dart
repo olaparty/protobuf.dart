@@ -9,45 +9,60 @@ Map<String, dynamic> _writeToJsonMap(_FieldSet fs) {
     var baseType = PbFieldType._baseType(fieldType);
 
     if (_isRepeated(fieldType)) {
-      return List.from(fieldValue.map((e) => convertToMap(e, baseType)));
+      final PbList list = fieldValue;
+      return List.from(list.map((e) => convertToMap(e, baseType)));
     }
 
     switch (baseType) {
       case PbFieldType._BOOL_BIT:
       case PbFieldType._STRING_BIT:
-      case PbFieldType._FLOAT_BIT:
-      case PbFieldType._DOUBLE_BIT:
       case PbFieldType._INT32_BIT:
       case PbFieldType._SINT32_BIT:
       case PbFieldType._UINT32_BIT:
       case PbFieldType._FIXED32_BIT:
       case PbFieldType._SFIXED32_BIT:
         return fieldValue;
+      case PbFieldType._FLOAT_BIT:
+      case PbFieldType._DOUBLE_BIT:
+        final value = fieldValue as double;
+        if (value.isNaN) {
+          return _nan;
+        }
+        if (value.isInfinite) {
+          return value.isNegative ? _negativeInfinity : _infinity;
+        }
+        if (fieldValue.toInt() == fieldValue) {
+          return fieldValue.toInt();
+        }
+        return value;
       case PbFieldType._BYTES_BIT:
         // Encode 'bytes' as a base64-encoded string.
         return base64Encode(fieldValue as List<int>);
       case PbFieldType._ENUM_BIT:
-        return fieldValue.value; // assume |value| < 2^52
+        final ProtobufEnum enum_ = fieldValue;
+        return enum_.value; // assume |value| < 2^52
       case PbFieldType._INT64_BIT:
       case PbFieldType._SINT64_BIT:
       case PbFieldType._SFIXED64_BIT:
         return fieldValue.toString();
       case PbFieldType._UINT64_BIT:
       case PbFieldType._FIXED64_BIT:
-        return fieldValue.toStringUnsigned();
+        final Int64 int_ = fieldValue;
+        return int_.toStringUnsigned();
       case PbFieldType._GROUP_BIT:
       case PbFieldType._MESSAGE_BIT:
-        return fieldValue.writeToJsonMap();
+        final GeneratedMessage msg = fieldValue;
+        return msg.writeToJsonMap();
       default:
         throw 'Unknown type $fieldType';
     }
   }
 
-  List _writeMap(dynamic fieldValue, MapFieldInfo fi) =>
+  List _writeMap(PbMap fieldValue, MapFieldInfo fi) =>
       List.from(fieldValue.entries.map((MapEntry e) => {
-            '${PbMap._keyFieldNumber}': convertToMap(e.key, fi.keyFieldType!),
+            '${PbMap._keyFieldNumber}': convertToMap(e.key, fi.keyFieldType),
             '${PbMap._valueFieldNumber}':
-                convertToMap(e.value, fi.valueFieldType!)
+                convertToMap(e.value, fi.valueFieldType)
           }));
 
   var result = <String, dynamic>{};
@@ -63,13 +78,14 @@ Map<String, dynamic> _writeToJsonMap(_FieldSet fs) {
     }
     result['${fi.tagNumber}'] = convertToMap(value, fi.type);
   }
-  if (fs._hasExtensions) {
-    for (var tagNumber in _sorted(fs._extensions!._tagNumbers)) {
-      var value = fs._extensions!._values[tagNumber];
+  final extensions = fs._extensions;
+  if (extensions != null) {
+    for (var tagNumber in _sorted(extensions._tagNumbers)) {
+      var value = extensions._values[tagNumber];
       if (value is List && value.isEmpty) {
         continue; // It's repeated or an empty byte array.
       }
-      var fi = fs._extensions!._getInfoOrNull(tagNumber)!;
+      var fi = extensions._getInfoOrNull(tagNumber)!;
       result['$tagNumber'] = convertToMap(value, fi.type);
     }
   }
@@ -131,14 +147,14 @@ void _appendJsonMap(BuilderInfo meta, _FieldSet fs, List jsonList,
         entryFieldSet,
         jsonEntry['${PbMap._keyFieldNumber}'],
         PbMap._keyFieldNumber,
-        fi.keyFieldType!,
+        fi.keyFieldType,
         registry);
     var convertedValue = _convertJsonValue(
         entryMeta,
         entryFieldSet,
         jsonEntry['${PbMap._valueFieldNumber}'],
         PbMap._valueFieldNumber,
-        fi.valueFieldType!,
+        fi.valueFieldType,
         registry);
     // In the case of an unknown enum value, the converted value may return
     // null. The default enum value should be used in these cases, which is
@@ -163,13 +179,14 @@ void _setJsonField(BuilderInfo meta, _FieldSet fs, json, FieldInfo fi,
   fs._setFieldUnchecked(meta, fi, value);
 }
 
-/// Converts [value] from the Json format to the Dart data type
-/// suitable for inserting into the corresponding [GeneratedMessage] field.
+/// Converts [value] from the JSON format to the Dart data type suitable for
+/// inserting into the corresponding [GeneratedMessage] field.
 ///
-/// Returns the converted value.  This function returns `null` if it is an
-/// unknown enum value, in which case the caller should figure out the default
-/// enum value to return instead.
-/// This function throws [ArgumentError] if it cannot convert the value.
+/// Returns the converted value. Returns `null` if it is an unknown enum value,
+/// in which case the caller should figure out the default enum value to return
+/// instead.
+///
+/// Throws [ArgumentError] if it cannot convert the value.
 dynamic _convertJsonValue(BuilderInfo meta, _FieldSet fs, value, int tagNumber,
     int fieldType, ExtensionRegistry? registry) {
   String expectedType; // for exception message

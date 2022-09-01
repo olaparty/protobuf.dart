@@ -1,4 +1,3 @@
-#!/usr/bin/env dart
 // Copyright (c) 2015, the Dart project authors.  Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
@@ -31,5 +30,17 @@ void main() {
                 as FieldInfo<TestAllTypes_NestedEnum>)
             .check,
         isNotNull);
+  });
+
+  test('check read-only default list type', () {
+    final msg = TestAllTypes()..freeze();
+    final list = msg.repeatedInt32;
+    expect(
+      list.firstWhere(
+        (_msg) => false,
+        orElse: () => 123,
+      ),
+      123,
+    );
   });
 }

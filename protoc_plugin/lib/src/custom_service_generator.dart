@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart=2.11
-
 part of '../protoc.dart';
 
 class CustomServiceGenerator {
@@ -26,10 +24,10 @@ class CustomServiceGenerator {
   final _undefinedDeps = <String, String>{};
 
   /// Fully-qualified gRPC service name.
-  String _fullServiceName;
+  late String _fullServiceName;
 
   /// Dart class name for client stub.
-  String _clientClassname;
+  late String _clientClassname;
 
   /// List of gRPC methods.
   final _methods = <_CustomApiMethod>[];
@@ -130,7 +128,7 @@ class _CustomApiMethod {
     final argumentType = requestType;
     final clientReturnType = '$_responseFuture<$responseType?>';
 
-    var serviceName = service.serviceName ?? ''; // upperCaseFirstLetter(service.serviceName);
+    var serviceName = service.serviceName; // upperCaseFirstLetter(service.serviceName);
     // if(serviceName.isNotEmpty){
     //   serviceName = '${serviceName.substring(0, 1).toUpperCase()}${serviceName.substring(1)}';
     // }

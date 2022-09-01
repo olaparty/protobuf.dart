@@ -4,10 +4,7 @@
 
 part of protobuf;
 
-typedef FrozenMessageErrorHandler = void Function(String messageName,
-    [String? methodName]);
-
-void defaultFrozenMessageModificationHandler(String messageName,
+void _throwFrozenMessageModificationError(String messageName,
     [String? methodName]) {
   if (methodName != null) {
     throw UnsupportedError(
@@ -17,36 +14,11 @@ void defaultFrozenMessageModificationHandler(String messageName,
       'Attempted to change a read-only message ($messageName)');
 }
 
-/// Invoked when an attempt is made to modify a frozen message.
+/// All the data in a [GeneratedMessage].
 ///
-/// This handler can log the attempt, throw an exception, or ignore the attempt
-/// altogether.
-///
-/// If the handler returns normally, the modification is allowed, and execution
-/// proceeds as if the message was writable.
-FrozenMessageErrorHandler _frozenMessageModificationHandler =
-    defaultFrozenMessageModificationHandler;
-FrozenMessageErrorHandler get frozenMessageModificationHandler =>
-    _frozenMessageModificationHandler;
-set frozenMessageModificationHandler(FrozenMessageErrorHandler value) {
-  _hashCodesCanBeMemoized = false;
-  _frozenMessageModificationHandler = value;
-}
-
-/// Indicator for whether the FieldSet hashCodes can be memoized.
-///
-/// HashCode memoization relies on the [defaultFrozenMessageModificationHandler]
-/// behavior--that is, after freezing, field set values can't ever be changed.
-/// This keeps track of whether an application has ever modified the
-/// [FrozenMessageErrorHandler] used, not allowing hashCodes to be memoized if
-/// it ever changed.
-bool _hashCodesCanBeMemoized = true;
-
-/// All the data in a GeneratedMessage.
-///
-/// These fields and methods are in a separate class to avoid
-/// polymorphic access due to inheritance. This turns out to
-/// be faster when compiled to JavaScript.
+/// These fields and methods are in a separate class to avoid polymorphic
+/// access due to inheritance. This turns out to be faster when compiled to
+/// JavaScript.
 class _FieldSet {
   final GeneratedMessage? _message;
   final EventPlugin? _eventPlugin;
@@ -98,8 +70,8 @@ class _FieldSet {
   int? get _memoizedHashCode =>
       _frozenState is int ? _frozenState as int : null;
 
-  // Maps a oneof decl index to the tag number which is currently set. If the
-  // index is not present, the oneof field is unset.
+  /// Maps a `oneof` field index to the tag number which is currently set. If
+  /// the index is not present, the oneof field is unset.
   final Map<int, int>? _oneofCases;
 
   _FieldSet(this._message, BuilderInfo meta, this._eventPlugin)
@@ -111,9 +83,9 @@ class _FieldSet {
     return List.filled(length, null, growable: false);
   }
 
-  // Use a fixed length list and not a constant list to ensure that _values
-  // always has the same implementation type.
-  static final List _zeroList = [];
+  // Use `List.filled` and not a `[]` to ensure that `_values` always has the
+  // same implementation type.
+  static final List _zeroList = List.filled(0, null, growable: false);
 
   // Metadata about multiple fields
 
@@ -126,16 +98,8 @@ class _FieldSet {
   /// The FieldInfo for each non-extension field in tag order.
   Iterable<FieldInfo> get _infosSortedByTag => _meta.sortedByTag;
 
-  /// Returns true if we should send events to the plugin.
-  bool get _hasObservers => _eventPlugin != null && _eventPlugin!.hasObservers;
-
-  bool get _hasExtensions => _extensions != null;
-  bool get _hasUnknownFields => _unknownFields != null;
-
-  _ExtensionFieldSet _ensureExtensions() {
-    if (!_hasExtensions) _extensions = _ExtensionFieldSet(this);
-    return _extensions!;
-  }
+  _ExtensionFieldSet _ensureExtensions() =>
+      _extensions ??= _ExtensionFieldSet(this);
 
   UnknownFieldSet _ensureUnknownFields() {
     if (_unknownFields == null) {
@@ -166,8 +130,7 @@ class _FieldSet {
   FieldInfo? _getFieldInfoOrNull(int tagNumber) {
     var fi = _nonExtensionInfo(_meta, tagNumber);
     if (fi != null) return fi;
-    if (!_hasExtensions) return null;
-    return _extensions!._getInfoOrNull(tagNumber);
+    return _extensions?._getInfoOrNull(tagNumber);
   }
 
   void _markReadOnly() {
@@ -175,18 +138,13 @@ class _FieldSet {
     _frozenState = true;
     for (var field in _meta.sortedByTag) {
       if (field.isRepeated) {
-        final entries = _values[field.index!];
-        if (entries == null) continue;
-        if (field.isGroupOrMessage) {
-          for (var subMessage in entries as List<GeneratedMessage>) {
-            subMessage.freeze();
-          }
-        }
-        _values[field.index!] = entries.toFrozenPbList();
+        PbList? list = _values[field.index!];
+        if (list == null) continue;
+        list.freeze();
       } else if (field.isMapField) {
         PbMap? map = _values[field.index!];
         if (map == null) continue;
-        _values[field.index!] = map.freeze();
+        map.freeze();
       } else if (field.isGroupOrMessage) {
         final entry = _values[field.index!];
         if (entry != null) {
@@ -194,17 +152,15 @@ class _FieldSet {
         }
       }
     }
-    if (_hasExtensions) {
-      _ensureExtensions()._markReadOnly();
-    }
 
-    if (_hasUnknownFields) {
-      _ensureUnknownFields()._markReadOnly();
-    }
+    _extensions?._markReadOnly();
+    _unknownFields?._markReadOnly();
   }
 
   void _ensureWritable() {
-    if (_isReadOnly) frozenMessageModificationHandler(_messageName);
+    if (_isReadOnly) {
+      _throwFrozenMessageModificationError(_messageName);
+    }
   }
 
   // Single-field operations
@@ -221,48 +177,21 @@ class _FieldSet {
       if (value != null) return value;
       return _getDefault(fi);
     }
-    if (_hasExtensions) {
-      var fi = _extensions!._getInfoOrNull(tagNumber);
+    final extensions = _extensions;
+    if (extensions != null) {
+      var fi = extensions._getInfoOrNull(tagNumber);
       if (fi != null) {
-        return _extensions!._getFieldOrDefault(fi);
+        return extensions._getFieldOrDefault(fi);
       }
     }
     throw ArgumentError('tag $tagNumber not defined in $_messageName');
   }
 
   dynamic _getDefault(FieldInfo fi) {
-    if (!fi.isRepeated) return fi.makeDefault!();
+    if (!fi.isRepeated && !fi.isMapField) return fi.makeDefault!();
     if (_isReadOnly) return fi.readonlyDefault;
 
-    // TODO(skybrian) we could avoid this by generating another
-    // method for repeated fields:
-    //   msg.mutableFoo().add(123);
-    var value = fi._createRepeatedField(_message!);
-    _setNonExtensionFieldUnchecked(_meta, fi, value);
-    return value;
-  }
-
-  List<T> _getDefaultList<T>(FieldInfo<T> fi) {
-    assert(fi.isRepeated);
-    if (_isReadOnly) return FrozenPbList._(const []);
-
-    // TODO(skybrian) we could avoid this by generating another
-    // method for repeated fields:
-    //   msg.mutableFoo().add(123);
-    var value = fi._createRepeatedFieldWithType<T>(_message!);
-    _setNonExtensionFieldUnchecked(_meta, fi, value);
-    return value;
-  }
-
-  Map<K, V> _getDefaultMap<K, V>(MapFieldInfo<K, V> fi) {
-    assert(fi.isMapField);
-
-    if (_isReadOnly) {
-      return PbMap<K, V>.unmodifiable(
-          PbMap<K, V>(fi.keyFieldType, fi.valueFieldType));
-    }
-
-    var value = fi._createMapField(_message!);
+    var value = fi.makeDefault!();
     _setNonExtensionFieldUnchecked(_meta, fi, value);
     return value;
   }
@@ -279,39 +208,43 @@ class _FieldSet {
   /// Works for both repeated and non-repeated fields.
   dynamic _getFieldOrNull(FieldInfo fi) {
     if (fi.index != null) return _values[fi.index!];
-    if (!_hasExtensions) return null;
-    return _extensions!._getFieldOrNull(fi as Extension<dynamic>);
+    return _extensions?._getFieldOrNull(fi as Extension<dynamic>);
   }
 
   bool _hasField(int tagNumber) {
     var fi = _nonExtensionInfo(_meta, tagNumber);
     if (fi != null) return _$has(fi.index!);
-    if (!_hasExtensions) return false;
-    return _extensions!._hasField(tagNumber);
+    return _extensions?._hasField(tagNumber) ?? false;
   }
 
-  void _clearField(int? tagNumber) {
+  void _clearField(int tagNumber) {
     _ensureWritable();
     final meta = _meta;
-    var fi = _nonExtensionInfo(meta, tagNumber);
+    final fi = _nonExtensionInfo(meta, tagNumber);
+
     if (fi != null) {
-      // clear a non-extension field
-      if (_hasObservers) _eventPlugin!.beforeClearField(fi);
+      assert(tagNumber == fi.tagNumber);
+
+      // Clear a non-extension field
+      final eventPlugin = _eventPlugin;
+      if (eventPlugin != null && eventPlugin.hasObservers) {
+        eventPlugin.beforeClearField(fi);
+      }
       _values[fi.index!] = null;
 
-      if (meta.oneofs.containsKey(fi.tagNumber)) {
-        _oneofCases!.remove(meta.oneofs[fi.tagNumber]);
+      final oneofIndex = meta.oneofs[tagNumber];
+      if (oneofIndex != null) {
+        _oneofCases![oneofIndex] = 0;
       }
 
-      var oneofIndex = meta.oneofs[fi.tagNumber];
-      if (oneofIndex != null) _oneofCases![oneofIndex] = 0;
       return;
     }
 
-    if (_hasExtensions) {
-      var fi = _extensions!._getInfoOrNull(tagNumber);
+    final extensions = _extensions;
+    if (extensions != null) {
+      var fi = extensions._getInfoOrNull(tagNumber);
       if (fi != null) {
-        _extensions!._clearField(fi);
+        extensions._clearField(fi);
         return;
       }
     }
@@ -330,10 +263,11 @@ class _FieldSet {
     final meta = _meta;
     var fi = _nonExtensionInfo(meta, tagNumber);
     if (fi == null) {
-      if (!_hasExtensions) {
+      final extensions = _extensions;
+      if (extensions == null) {
         throw ArgumentError('tag $tagNumber not defined in $_messageName');
       }
-      _extensions!._setField(tagNumber, value);
+      extensions._setField(tagNumber, value);
       return;
     }
 
@@ -387,7 +321,7 @@ class _FieldSet {
     assert(fi.index != null); // Map fields are not allowed to be extensions.
 
     var value = _getFieldOrNull(fi);
-    if (value != null) return (value as Map<K, V>) as PbMap<K, V>;
+    if (value != null) return value as PbMap<K, V>;
 
     var newValue = fi._createMapField(_message!);
     _setNonExtensionFieldUnchecked(meta, fi, newValue);
@@ -396,10 +330,13 @@ class _FieldSet {
 
   /// Sets a non-extended field and fires events.
   void _setNonExtensionFieldUnchecked(BuilderInfo meta, FieldInfo fi, value) {
-    var tag = fi.tagNumber;
-    var oneofIndex = meta.oneofs[tag];
+    final tag = fi.tagNumber;
+    final oneofIndex = meta.oneofs[tag];
     if (oneofIndex != null) {
-      _clearField(_oneofCases![oneofIndex]);
+      final currentOneofTag = _oneofCases![oneofIndex];
+      if (currentOneofTag != null) {
+        _clearField(currentOneofTag);
+      }
       _oneofCases![oneofIndex] = tag;
     }
 
@@ -407,8 +344,9 @@ class _FieldSet {
     // beginning of this method but happens just before the value is set.
     // Otherwise the observers will be notified about 'clearField' and
     // 'setField' events in an incorrect order.
-    if (_hasObservers) {
-      _eventPlugin!.beforeSetField(fi, value);
+    final eventPlugin = _eventPlugin;
+    if (eventPlugin != null && eventPlugin.hasObservers) {
+      eventPlugin.beforeSetField(fi, value);
     }
     _values[fi.index!] = value;
   }
@@ -447,15 +385,34 @@ class _FieldSet {
   List<T> _$getList<T>(int index) {
     var value = _values[index];
     if (value != null) return value as List<T>;
-    return _getDefaultList<T>(_nonExtensionInfoByIndex(index) as FieldInfo<T>);
+
+    final fi = _nonExtensionInfoByIndex(index) as FieldInfo<T>;
+    assert(fi.isRepeated);
+
+    if (_isReadOnly) {
+      return fi.readonlyDefault;
+    }
+
+    var list = fi._createRepeatedFieldWithType<T>(_message!);
+    _setNonExtensionFieldUnchecked(_meta, fi, list);
+    return list;
   }
 
   /// The implementation of a generated getter for map fields.
   Map<K, V> _$getMap<K, V>(GeneratedMessage parentMessage, int index) {
     var value = _values[index];
     if (value != null) return value as Map<K, V>;
-    return _getDefaultMap<K, V>(
-        _nonExtensionInfoByIndex(index) as MapFieldInfo<K, V>);
+
+    final fi = _nonExtensionInfoByIndex(index) as MapFieldInfo<K, V>;
+    assert(fi.isMapField);
+
+    if (_isReadOnly) {
+      return PbMap<K, V>(fi.keyFieldType, fi.valueFieldType);
+    }
+
+    var map = fi._createMapField(_message!);
+    _setNonExtensionFieldUnchecked(_meta, fi, map);
+    return map;
   }
 
   /// The implementation of a generated getter for `bool` fields.
@@ -465,18 +422,12 @@ class _FieldSet {
       if (defaultValue != null) return defaultValue;
       value = _getDefault(_nonExtensionInfoByIndex(index));
     }
-    bool result = value;
-    return result;
+    return value;
   }
 
   /// The implementation of a generated getter for `bool` fields that default to
   /// `false`.
-  bool _$getBF(int index) {
-    var value = _values[index];
-    if (value == null) return false;
-    bool result = value;
-    return result;
-  }
+  bool _$getBF(int index) => _values[index] ?? false;
 
   /// The implementation of a generated getter for int fields.
   int _$getI(int index, int? defaultValue) {
@@ -485,18 +436,12 @@ class _FieldSet {
       if (defaultValue != null) return defaultValue;
       value = _getDefault(_nonExtensionInfoByIndex(index));
     }
-    int result = value;
-    return result;
+    return value;
   }
 
   /// The implementation of a generated getter for `int` fields (int32, uint32,
   /// fixed32, sfixed32) that default to `0`.
-  int _$getIZ(int index) {
-    var value = _values[index];
-    if (value == null) return 0;
-    int result = value;
-    return result;
-  }
+  int _$getIZ(int index) => _values[index] ?? 0;
 
   /// The implementation of a generated getter for String fields.
   String _$getS(int index, String? defaultValue) {
@@ -505,25 +450,18 @@ class _FieldSet {
       if (defaultValue != null) return defaultValue;
       value = _getDefault(_nonExtensionInfoByIndex(index));
     }
-    String result = value;
-    return result;
+    return value;
   }
 
   /// The implementation of a generated getter for String fields that default to
   /// the empty string.
-  String _$getSZ(int index) {
-    var value = _values[index];
-    if (value == null) return '';
-    String result = value;
-    return result;
-  }
+  String _$getSZ(int index) => _values[index] ?? '';
 
   /// The implementation of a generated getter for Int64 fields.
   Int64 _$getI64(int index) {
     var value = _values[index];
     value ??= _getDefault(_nonExtensionInfoByIndex(index));
-    Int64 result = value;
-    return result;
+    return value;
   }
 
   /// The implementation of a generated 'has' method.
@@ -546,15 +484,19 @@ class _FieldSet {
     if (value == null) {
       _$check(index, value); // throw exception for null value
     }
-    if (_hasObservers) {
-      _eventPlugin!.beforeSetField(_nonExtensionInfoByIndex(index), value);
+    final eventPlugin = _eventPlugin;
+    if (eventPlugin != null && eventPlugin.hasObservers) {
+      eventPlugin.beforeSetField(_nonExtensionInfoByIndex(index), value);
     }
     final meta = _meta;
     var tag = meta.byIndex[index].tagNumber;
     var oneofIndex = meta.oneofs[tag];
 
     if (oneofIndex != null) {
-      _clearField(_oneofCases![oneofIndex]);
+      final currentOneofTag = _oneofCases![oneofIndex];
+      if (currentOneofTag != null) {
+        _clearField(currentOneofTag);
+      }
       _oneofCases![oneofIndex] = tag;
     }
     _values[index] = value;
@@ -573,21 +515,24 @@ class _FieldSet {
       _unknownFields!.clear();
     }
 
-    if (_hasObservers) {
+    final extensions = _extensions;
+
+    final eventPlugin = _eventPlugin;
+    if (eventPlugin != null && eventPlugin.hasObservers) {
       for (var fi in _infos) {
         if (_values[fi.index!] != null) {
-          _eventPlugin!.beforeClearField(fi);
+          eventPlugin.beforeClearField(fi);
         }
       }
-      if (_hasExtensions) {
-        for (var key in _extensions!._tagNumbers) {
-          var fi = _extensions!._getInfoOrNull(key)!;
-          _eventPlugin!.beforeClearField(fi);
+      if (extensions != null) {
+        for (var key in extensions._tagNumbers) {
+          var fi = extensions._getInfoOrNull(key)!;
+          eventPlugin.beforeClearField(fi);
         }
       }
     }
     if (_values.isNotEmpty) _values.fillRange(0, _values.length, null);
-    if (_hasExtensions) _extensions!._clearValues();
+    extensions?._clearValues();
   }
 
   bool _equals(_FieldSet o) {
@@ -596,14 +541,16 @@ class _FieldSet {
       if (!_equalFieldValues(_values[i], o._values[i])) return false;
     }
 
-    if (!_hasExtensions || !_extensions!._hasValues) {
+    final extensions = _extensions;
+    if (extensions == null || !extensions._hasValues) {
       // Check if other extensions are logically empty.
       // (Don't create them unnecessarily.)
-      if (o._hasExtensions && o._extensions!._hasValues) {
+      final oExtensions = o._extensions;
+      if (oExtensions != null && oExtensions._hasValues) {
         return false;
       }
     } else {
-      if (!_extensions!._equalValues(o._extensions)) return false;
+      if (!extensions._equalValues(o._extensions)) return false;
     }
 
     if (_unknownFields == null || _unknownFields!.isEmpty) {
@@ -636,6 +583,11 @@ class _FieldSet {
     // We don't want reading a field to change equality comparisons.
     if (val is List && val.isEmpty) return true;
 
+    // An empty map field is the same as uninitialized.
+    // This is because accessing a map field automatically creates it.
+    // We don't want reading a field to change equality comparisons.
+    if (val is PbMap && val.isEmpty) return true;
+
     // For now, initialized and uninitialized fields are different.
     // TODO(skybrian) consider other cases; should we compare with the
     // default value or not?
@@ -647,64 +599,71 @@ class _FieldSet {
   /// The hash may change when any field changes (recursively).
   /// Therefore, protobufs used as map keys shouldn't be changed.
   ///
-  /// If the protobuf contents have been frozen, and the
-  /// [FrozenMessageErrorHandler] has not been changed from the default
-  /// behavior, the hashCode can be memoized to speed up performance.
+  /// If the protobuf contents have been frozen the hashCode is memoized to
+  /// speed up performance.
   int get _hashCode {
-    if (_hashCodesCanBeMemoized && _memoizedHashCode != null) {
+    if (_memoizedHashCode != null) {
       return _memoizedHashCode!;
-    }
-    // Hashes the value of one field (recursively).
-    int hashField(int hash, FieldInfo fi, value) {
-      if (value is List && value.isEmpty) {
-        return hash; // It's either repeated or an empty byte array.
-      }
-
-      hash = _HashUtils._combine(hash, fi.tagNumber);
-      if (_isBytes(fi.type)) {
-        // Bytes are represented as a List<int> (Usually with byte-data).
-        // We special case that to match our equality semantics.
-        hash = _HashUtils._combine(hash, _HashUtils._hashObjects(value));
-      } else if (!_isEnum(fi.type)) {
-        hash = _HashUtils._combine(hash, value.hashCode);
-      } else if (fi.isRepeated) {
-        hash = _HashUtils._hashObjects(value.map((enm) => enm.value));
-      } else {
-        ProtobufEnum enm = value;
-        hash = _HashUtils._combine(hash, enm.value);
-      }
-
-      return hash;
-    }
-
-    int hashEachField(int hash) {
-      //non-extension fields
-      hash = _infosSortedByTag.where((fi) => _values[fi.index!] != null).fold(
-          hash, (int h, FieldInfo fi) => hashField(h, fi, _values[fi.index!]));
-
-      if (!_hasExtensions) return hash;
-
-      hash =
-          _sorted(_extensions!._tagNumbers).fold(hash, (int h, int tagNumber) {
-        var fi = _extensions!._getInfoOrNull(tagNumber)!;
-        return hashField(h, fi, _extensions!._getFieldOrNull(fi));
-      });
-
-      return hash;
     }
 
     // Hash with descriptor.
     var hash = _HashUtils._combine(0, _meta.hashCode);
-    // Hash with fields.
-    hash = hashEachField(hash);
-    // Hash with unknown fields.
-    if (_hasUnknownFields) {
-      hash = _HashUtils._combine(hash, _unknownFields.hashCode);
+
+    // Hash with non-extension fields.
+    final values = _values;
+    for (final fi in _infosSortedByTag) {
+      final value = values[fi.index!];
+      if (value == null) continue;
+      hash = _hashField(hash, fi, value);
     }
 
-    if (_isReadOnly && _hashCodesCanBeMemoized) {
+    // Hash with extension fields.
+    final extensions = _extensions;
+    if (extensions != null) {
+      final sortedByTagNumbers = _sorted(extensions._tagNumbers);
+      for (final tagNumber in sortedByTagNumbers) {
+        final fi = extensions._getInfoOrNull(tagNumber)!;
+        hash = _hashField(hash, fi, extensions._getFieldOrNull(fi));
+      }
+    }
+
+    // Hash with unknown fields.
+    hash = _HashUtils._combine(hash, _unknownFields?.hashCode ?? 0);
+
+    if (_isReadOnly) {
       _frozenState = hash;
     }
+    return hash;
+  }
+
+  // Hashes the value of one field (recursively).
+  static int _hashField(int hash, FieldInfo fi, value) {
+    if (value is List && value.isEmpty) {
+      return hash; // It's either repeated or an empty byte array.
+    }
+
+    if (value is PbMap && value.isEmpty) {
+      return hash;
+    }
+
+    hash = _HashUtils._combine(hash, fi.tagNumber);
+    if (_isBytes(fi.type)) {
+      // Bytes are represented as a List<int> (Usually with byte-data).
+      // We special case that to match our equality semantics.
+      hash = _HashUtils._combine(hash, _HashUtils._hashObjects(value));
+    } else if (!_isEnum(fi.type)) {
+      hash = _HashUtils._combine(hash, value.hashCode);
+    } else if (fi.isRepeated) {
+      final PbList list = value;
+      hash = _HashUtils._combine(hash, _HashUtils._hashObjects(list.map((enm) {
+        ProtobufEnum enm_ = enm;
+        return enm_.value;
+      })));
+    } else {
+      ProtobufEnum enm = value;
+      hash = _HashUtils._combine(hash, enm.value);
+    }
+
     return hash;
   }
 
@@ -723,11 +682,7 @@ class _FieldSet {
 
     void writeFieldValue(fieldValue, String name) {
       if (fieldValue == null) return;
-      if (fieldValue is ByteData) {
-        // TODO(skybrian): possibly unused. Delete?
-        final value = fieldValue.getUint64(0, Endian.little);
-        renderValue(name, value);
-      } else if (fieldValue is PbListBase) {
+      if (fieldValue is PbList) {
         for (var value in fieldValue) {
           renderValue(name, value);
         }
@@ -741,18 +696,22 @@ class _FieldSet {
     }
 
     for (var fi in _infosSortedByTag) {
-      writeFieldValue(_values[fi.index!], fi.name);
+      writeFieldValue(_values[fi.index!],
+          fi.name == '' ? fi.tagNumber.toString() : fi.name);
     }
 
-    if (_hasExtensions) {
-      _extensions!._info.keys.toList()
+    final extensions = _extensions;
+    if (extensions != null) {
+      extensions._info.keys.toList()
         ..sort()
         ..forEach((int tagNumber) => writeFieldValue(
             _extensions!._values[tagNumber],
             '[${_extensions!._info[tagNumber]!.name}]'));
     }
-    if (_hasUnknownFields) {
-      out.write(_unknownFields.toString());
+
+    final unknownFields = _unknownFields;
+    if (unknownFields != null) {
+      out.write(unknownFields.toString());
     } else {
       out.write(UnknownFieldSet().toString());
     }
@@ -773,40 +732,44 @@ class _FieldSet {
       var value = other._values[fi.index!];
       if (value != null) _mergeField(fi, value, isExtension: false);
     }
-    if (other._hasExtensions) {
-      var others = other._extensions!;
-      for (var tagNumber in others._tagNumbers) {
-        var extension = others._getInfoOrNull(tagNumber)!;
-        var value = others._getFieldOrNull(extension);
+
+    final otherExtensions = other._extensions;
+    if (otherExtensions != null) {
+      for (var tagNumber in otherExtensions._tagNumbers) {
+        var extension = otherExtensions._getInfoOrNull(tagNumber)!;
+        var value = otherExtensions._getFieldOrNull(extension);
         _mergeField(extension, value, isExtension: true);
       }
     }
 
-    if (other._hasUnknownFields) {
-      _ensureUnknownFields().mergeFromUnknownFieldSet(other._unknownFields!);
+    final otherUnknownFields = other._unknownFields;
+    if (otherUnknownFields != null) {
+      _ensureUnknownFields().mergeFromUnknownFieldSet(otherUnknownFields);
     }
   }
 
-  void _mergeField(FieldInfo otherFi, fieldValue, {bool? isExtension}) {
+  void _mergeField(FieldInfo otherFi, fieldValue, {required bool isExtension}) {
     final tagNumber = otherFi.tagNumber;
 
     // Determine the FieldInfo to use.
     // Don't allow regular fields to be overwritten by extensions.
     final meta = _meta;
     var fi = _nonExtensionInfo(meta, tagNumber);
-    if (fi == null && isExtension!) {
+    if (fi == null && isExtension) {
       // This will overwrite any existing extension field info.
       fi = otherFi;
     }
 
-    var mustClone = _isGroupOrMessage(otherFi.type);
-
     if (fi!.isMapField) {
-      var f = fi as MapFieldInfo<dynamic, dynamic>;
-      mustClone = _isGroupOrMessage(f.valueFieldType!);
-      var map = f._ensureMapField(meta, this) as PbMap<dynamic, dynamic>;
-      if (mustClone) {
-        for (MapEntry entry in fieldValue.entries) {
+      if (fieldValue == null) {
+        return;
+      }
+      final MapFieldInfo<dynamic, dynamic> f = fi as dynamic;
+      final PbMap<dynamic, dynamic> map =
+          f._ensureMapField(meta, this) as dynamic;
+      if (_isGroupOrMessage(f.valueFieldType)) {
+        PbMap fieldValueMap = fieldValue;
+        for (final entry in fieldValueMap.entries) {
           map[entry.key] = (entry.value as GeneratedMessage).deepCopy();
         }
       } else {
@@ -816,34 +779,36 @@ class _FieldSet {
     }
 
     if (fi.isRepeated) {
-      if (mustClone) {
-        // fieldValue must be a PbListBase of GeneratedMessage.
-        PbListBase<GeneratedMessage> pbList = fieldValue;
+      if (_isGroupOrMessage(otherFi.type)) {
+        // fieldValue must be a PbList of GeneratedMessage.
+        PbList<GeneratedMessage> pbList = fieldValue;
         var repeatedFields = fi._ensureRepeatedField(meta, this);
         for (var i = 0; i < pbList.length; ++i) {
           repeatedFields.add(pbList[i].deepCopy());
         }
       } else {
-        // fieldValue must be at least a PbListBase.
-        PbListBase pbList = fieldValue;
+        // fieldValue must be at least a PbList.
+        PbList pbList = fieldValue;
         fi._ensureRepeatedField(meta, this).addAll(pbList);
       }
       return;
     }
 
     if (otherFi.isGroupOrMessage) {
-      final currentFi = isExtension!
+      final currentFi = isExtension
           ? _ensureExtensions()._getFieldOrNull(fi as Extension<dynamic>)
           : _values[fi.index!];
 
+      GeneratedMessage msg = fieldValue;
       if (currentFi == null) {
-        fieldValue = (fieldValue as GeneratedMessage).deepCopy();
+        fieldValue = msg.deepCopy();
       } else {
-        fieldValue = currentFi..mergeFromMessage(fieldValue);
+        final GeneratedMessage currentMsg = currentFi;
+        fieldValue = currentMsg..mergeFromMessage(msg);
       }
     }
 
-    if (isExtension!) {
+    if (isExtension) {
       _ensureExtensions()
           ._setFieldAndInfo(fi as Extension<dynamic>, fieldValue);
     } else {
@@ -854,7 +819,13 @@ class _FieldSet {
 
   // Error-checking
 
-  /// Checks the value for a field that's about to be set.
+  /// Checks that the message is mutable (not frozen) and the value for the
+  /// field is valid for the field type.
+  ///
+  /// Throws [UnsupportedError] if the message if immutable (frozen).
+  ///
+  /// Throws [ArgumentError] if the field value is not valid for the field
+  /// type. For example, when setting a proto `string` field a Dart `int`.
   void _validateField(FieldInfo fi, var newValue) {
     _ensureWritable();
     var message = _getFieldError(fi.type, newValue);
@@ -878,9 +849,10 @@ class _FieldSet {
   }
 
   bool _hasRequiredExtensionValues() {
-    if (!_hasExtensions) return true;
-    for (var fi in _extensions!._infos) {
-      var value = _extensions!._getFieldOrNull(fi);
+    final extensions = _extensions;
+    if (extensions == null) return true;
+    for (var fi in extensions._infos) {
+      var value = extensions._getFieldOrNull(fi);
       if (!fi._hasRequiredValues(value)) return false;
     }
     return true; // No problems found.
@@ -913,7 +885,7 @@ class _FieldSet {
             ..addAll(map);
         }
       } else if (fieldInfo.isRepeated) {
-        PbListBase? list = _values[index];
+        PbList? list = _values[index];
         if (list != null) {
           _values[index] = fieldInfo._createRepeatedField(_message!)
             ..addAll(list);
@@ -921,12 +893,14 @@ class _FieldSet {
       }
     }
 
-    if (original._hasExtensions) {
-      _ensureExtensions()._shallowCopyValues(original._extensions!);
+    final originalExtensions = original._extensions;
+    if (originalExtensions != null) {
+      _ensureExtensions()._shallowCopyValues(originalExtensions);
     }
 
-    if (original._hasUnknownFields) {
-      _ensureUnknownFields()._fields.addAll(original._unknownFields!._fields);
+    final originalUnknownFields = original._unknownFields;
+    if (originalUnknownFields != null) {
+      _ensureUnknownFields()._fields.addAll(originalUnknownFields._fields);
     }
 
     _oneofCases?.addAll(original._oneofCases!);

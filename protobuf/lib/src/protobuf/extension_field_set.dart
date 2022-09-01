@@ -12,7 +12,7 @@ class _ExtensionFieldSet {
 
   _ExtensionFieldSet(this._parent);
 
-  Extension? _getInfoOrNull(int? tagNumber) => _info[tagNumber];
+  Extension? _getInfoOrNull(int tagNumber) => _info[tagNumber];
 
   dynamic _getFieldOrDefault(Extension fi) {
     if (fi.isRepeated) return _getList(fi);
@@ -76,7 +76,10 @@ class _ExtensionFieldSet {
   void _clearField(Extension fi) {
     _ensureWritable();
     _validateInfo(fi);
-    if (_parent._hasObservers) _parent._eventPlugin!.beforeClearField(fi);
+    final eventPlugin = _parent._eventPlugin;
+    if (eventPlugin != null && eventPlugin.hasObservers) {
+      eventPlugin.beforeClearField(fi);
+    }
     _values.remove(fi.tagNumber);
   }
 
@@ -113,7 +116,9 @@ class _ExtensionFieldSet {
   }
 
   void _ensureWritable() {
-    if (_isReadOnly) frozenMessageModificationHandler(_parent._messageName);
+    if (_isReadOnly) {
+      _throwFrozenMessageModificationError(_parent._messageName);
+    }
   }
 
   void _validateInfo(Extension fi) {
@@ -129,9 +134,13 @@ class _ExtensionFieldSet {
   }
 
   void _setFieldUnchecked(Extension fi, value) {
-    if (_parent._hasObservers) {
-      _parent._eventPlugin!.beforeSetField(fi, value);
+    final eventPlugin = _parent._eventPlugin;
+    if (eventPlugin != null && eventPlugin.hasObservers) {
+      eventPlugin.beforeSetField(fi, value);
     }
+    // If there was already an unknown field with the same tag number,
+    // overwrite it.
+    _parent._unknownFields?.clearField(fi.tagNumber);
     _values[fi.tagNumber] = value;
   }
 
@@ -159,7 +168,7 @@ class _ExtensionFieldSet {
       final value = original._getFieldOrNull(extension);
       if (value == null) continue;
       if (extension.isRepeated) {
-        assert(value is PbListBase);
+        assert(value is PbList);
         _ensureRepeatedField(extension).addAll(value);
       } else {
         _setFieldUnchecked(extension, value);
@@ -172,14 +181,10 @@ class _ExtensionFieldSet {
     _isReadOnly = true;
     for (var field in _info.values) {
       if (field.isRepeated) {
-        final entries = _values[field.tagNumber];
-        if (entries == null) continue;
-        if (field.isGroupOrMessage) {
-          for (var subMessage in entries as List<GeneratedMessage>) {
-            subMessage.freeze();
-          }
-        }
-        _values[field.tagNumber] = entries.toFrozenPbList();
+        final entriesDynamic = _values[field.tagNumber];
+        if (entriesDynamic == null) continue;
+        final PbList entries = entriesDynamic;
+        entries.freeze();
       } else if (field.isGroupOrMessage) {
         final entry = _values[field.tagNumber];
         if (entry != null) {
@@ -190,8 +195,8 @@ class _ExtensionFieldSet {
   }
 
   void _checkNotInUnknown(Extension extension) {
-    if (_parent._hasUnknownFields &&
-        _parent._unknownFields!.hasField(extension.tagNumber)) {
+    final unknownFields = _parent._unknownFields;
+    if (unknownFields != null && unknownFields.hasField(extension.tagNumber)) {
       throw StateError(
           'Trying to get $extension that is present as an unknown field. '
           'Parse the message with this extension in the extension registry or '

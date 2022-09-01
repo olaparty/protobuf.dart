@@ -28,6 +28,7 @@ TEST_PROTO_LIST = \
 	custom_option \
 	dart_name \
         default_value_escape \
+	entity \
 	enum_extension \
 	enum_name \
 	extend_unittest \
@@ -44,7 +45,9 @@ TEST_PROTO_LIST = \
 	map_field \
 	mixins \
 	multiple_files_test \
+	nested_any \
 	nested_extension \
+	nested_message \
 	non_nested_extension \
 	oneof \
 	reserved_names \
@@ -54,7 +57,9 @@ TEST_PROTO_LIST = \
 	package1 \
 	package2 \
 	package3 \
+	proto2_repeated \
 	proto3_optional \
+	proto3_repeated \
 	service \
 	service2 \
 	service3 \
@@ -96,7 +101,7 @@ update-pregenerated: $(PLUGIN_PATH) $(PREGENERATED_SRCS)
 protos: $(PLUGIN_PATH) $(TEST_PROTO_LIBS)
 
 run-tests: protos
-	pub run test
+	dart run test
 
 clean:
 	rm -rf benchmark/lib/generated
