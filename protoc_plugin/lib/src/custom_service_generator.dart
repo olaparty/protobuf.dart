@@ -43,6 +43,9 @@ class CustomServiceGenerator {
     }
 
     // avoid: ClientApi
+    if (name.endsWith('API')) {
+      _clientClassname = name.substring(0, name.length - 3);
+    }
     _clientClassname = name.endsWith('Api') ? name : name + 'Api';
   }
 
@@ -112,8 +115,10 @@ class _CustomApiMethod {
   final String _clientReturnType;
   final String _responseType;
   final String _serviceName;
+  final String _apiPrefix;
 
-  _CustomApiMethod._(this._serviceName, this._dartName, this._argumentType, this._clientReturnType, this._responseType);
+  _CustomApiMethod._(this._serviceName, this._dartName, this._argumentType, this._clientReturnType, this._responseType,
+      this._apiPrefix);
 
   factory _CustomApiMethod(CustomServiceGenerator service, GenerationContext ctx, MethodDescriptorProto method) {
     final grpcName = method.name;
@@ -133,26 +138,59 @@ class _CustomApiMethod {
     //   serviceName = '${serviceName.substring(0, 1).toUpperCase()}${serviceName.substring(1)}';
     // }
 
-    return _CustomApiMethod._(serviceName, dartName, argumentType, clientReturnType, responseType);
+    var apiPrifx = 'go/';
+    var nameSplits = service.fileGen.descriptor.name.split('__');
+    if (nameSplits.length == 2) {
+      apiPrifx = '$apiPrifx${nameSplits.first}/';
+    }
+
+    return _CustomApiMethod._(serviceName, dartName, argumentType, clientReturnType, responseType, apiPrifx);
   }
 
   void generateClientStub(IndentingWriter out) {
     out.println();
-    out.addBlock('static $_clientReturnType $_dartName($_argumentType request, {bool toastMessage = true, bool throwError = true}) async {', '}', () {
-    out.println("String url = '\${System.domain}$_apiPrefix$_serviceName/$_dartName';");
-    out.println("final proto = ProtobufOptions(requestMessage: request, responseMessage: $_responseType());");
 
-    out.println("XhrResponse response = await Xhr.postWithPbOptions(url, proto,throwOnError: false);");
-    out.println("if (response.error == null) {");
-    out.println("return proto.responseMessage as $_responseType;");
-    out.println("}else if(response.error?.code == XhrErrorCode.HttpStatus){");
-    out.println("  response.error?.toastMessageOrThrow(toastMessage: toastMessage, throwError: throwError);");
-    out.println("}");
-    out.println("return null;");
+    var serviceName = convertServiceName(_serviceName);
+    var apiName = convertApiName(_dartName);
+
+    out.addBlock(
+        'static $_clientReturnType $apiName($_argumentType request, {bool toastMessage = true, bool throwError = true}) async {',
+        '}', () {
+      out.println("String url = '\${System.domain}${_apiPrefix}$serviceName/$apiName';");
+      out.println('final proto = ProtobufOptions(requestMessage: request, responseMessage: $_responseType());');
+
+      out.println('XhrResponse response = await Xhr.postWithPbOptions(url, proto,throwOnError: false);');
+      out.println('if (response.error == null) {');
+      out.println('return proto.responseMessage as $_responseType;');
+      out.println('}else if(response.error?.code == XhrErrorCode.HttpStatus){');
+      out.println('  response.error?.toastMessageOrThrow(toastMessage: toastMessage, throwError: throwError);');
+      out.println('}');
+      out.println('return null;');
     });
   }
 
-  static final String _apiPrefix = 'go/';
+  String convertApiName(String name) {
+    if (name.isEmpty) {
+      return name;
+    }
+    return name.replaceRange(0, 1, name[0].toLowerCase());
+  }
+
+  String convertServiceName(String name) {
+    if (name.isEmpty) {
+      return name;
+    }
+
+    // Convert the first character to lowercase
+    var result = name.replaceRange(0, 1, name[0].toLowerCase());
+    if (result.endsWith('API')) {
+      result = result.substring(0, result.length - 3);
+    }
+
+    return result;
+  }
+
+  // static String _apiPrefix = 'go/';
 
   static final String _responseFuture = '${grpcImportPrefix}Future';
 }
