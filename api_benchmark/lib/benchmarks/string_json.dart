@@ -4,7 +4,7 @@
 
 import '../benchmark.dart';
 import '../generated/benchmark.pb.dart'
-    show BenchmarkID, Request, Params, Sample;
+    show BenchmarkID, Params, Request, Sample;
 import '../generated/string_grid.pb.dart' as pb;
 
 /// A benchmark that deserializes a grid of string fields.
@@ -12,13 +12,13 @@ class StringBenchmark extends Benchmark {
   final int width;
   final int height;
   final int stringSize;
-  String json;
-  int lastFieldTag;
+  late String json;
+  int? lastFieldTag;
 
   StringBenchmark(this.width, this.height, this.stringSize) : super($id);
 
   @override
-  get summary => '${id.name}($width x $height x $stringSize)';
+  String get summary => '${id.name}($width x $height x $stringSize)';
 
   @override
   Params makeParams() => Params()
@@ -28,7 +28,7 @@ class StringBenchmark extends Benchmark {
 
   @override
   void setup() {
-    var grid = _makeGrid(width, height, stringSize);
+    final grid = _makeGrid(width, height, stringSize);
     json = grid.writeToJson();
     lastFieldTag = getTagForColumn(pb.Line10(), width - 1);
   }
@@ -39,15 +39,15 @@ class StringBenchmark extends Benchmark {
   // "23" "34" "45" "56"
   static pb.Grid10 _makeGrid(int width, int height, int stringSize) {
     if (width > 10) throw ArgumentError('width out of range: $width');
-    var grid = pb.Grid10();
+    final grid = pb.Grid10();
 
-    int zero = '0'.codeUnits[0];
+    final zero = '0'.codeUnits[0];
 
-    for (int y = 0; y < height; y++) {
-      var line = pb.Line10();
-      for (int x = 0; x < width; x++) {
-        int tag = getTagForColumn(line, x);
-        var charCodes = <int>[];
+    for (var y = 0; y < height; y++) {
+      final line = pb.Line10();
+      for (var x = 0; x < width; x++) {
+        final tag = getTagForColumn(line, x)!;
+        final charCodes = <int>[];
         for (var i = 0; i < stringSize; i++) {
           charCodes.add(zero + ((x + y + i) % 10));
         }
@@ -59,14 +59,14 @@ class StringBenchmark extends Benchmark {
     return grid;
   }
 
-  static int getTagForColumn(pb.Line10 line, int x) {
+  static int? getTagForColumn(pb.Line10 line, int x) {
     return line.getTagNumber('cell${x + 1}'); // assume x start from 1
   }
 
   @override
   void run() {
-    pb.Grid10 grid = pb.Grid10.fromJson(json);
-    var actual = grid.lines[height - 1].getField(lastFieldTag);
+    final grid = pb.Grid10.fromJson(json);
+    final actual = grid.lines[height - 1].getField(lastFieldTag!) as String;
     if (actual.length != stringSize) throw 'failed; got $actual';
   }
 
@@ -76,10 +76,10 @@ class StringBenchmark extends Benchmark {
   }
 
   @override
-  measureSample(Sample s) => stringReadsPerMillisecond(s);
+  double measureSample(Sample? s) => stringReadsPerMillisecond(s);
 
   @override
-  get measureSampleUnits => 'string reads/ms';
+  String get measureSampleUnits => 'string reads/ms';
 
   static const $id = BenchmarkID.READ_STRING_FIELDS_JSON;
   static final $type = BenchmarkType($id, $create);

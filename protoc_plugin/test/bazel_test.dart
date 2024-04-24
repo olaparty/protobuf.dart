@@ -17,30 +17,30 @@ void main() {
       errors = [];
     });
 
-    void _onError(String message) {
+    void onError(String message) {
       errors.add(message);
     }
 
     test('should call onError for null values', () {
-      optionParser.parse(optionName, null, _onError);
+      optionParser.parse(optionName, null, onError);
       expect(errors, isNotEmpty);
     });
 
     test('should call onError for empty values', () {
-      optionParser.parse(optionName, '', _onError);
+      optionParser.parse(optionName, '', onError);
       expect(errors, isNotEmpty);
     });
 
     test('should call onError for malformed entries', () {
-      optionParser.parse(optionName, 'foo', _onError);
-      optionParser.parse(optionName, 'foo|bar', _onError);
-      optionParser.parse(optionName, 'foo|bar|baz|quux', _onError);
+      optionParser.parse(optionName, 'foo', onError);
+      optionParser.parse(optionName, 'foo|bar', onError);
+      optionParser.parse(optionName, 'foo|bar|baz|quux', onError);
       expect(errors.length, 3);
       expect(packages, isEmpty);
     });
 
     test('should handle a single package|path entry', () {
-      optionParser.parse(optionName, 'foo|bar/baz|wibble/wobble', _onError);
+      optionParser.parse(optionName, 'foo|bar/baz|wibble/wobble', onError);
       expect(errors, isEmpty);
       expect(packages.length, 1);
       expect(packages['bar/baz']!.name, 'foo');
@@ -52,7 +52,7 @@ void main() {
       optionParser.parse(
           optionName,
           'foo|bar/baz|wibble/wobble;a|b/c/d|e/f;one.two|three|four/five',
-          _onError);
+          onError);
       expect(errors, isEmpty);
       expect(packages.length, 3);
       expect(packages['bar/baz']!.name, 'foo');
@@ -68,7 +68,7 @@ void main() {
 
     test('should skip and continue past malformed entries', () {
       optionParser.parse(optionName,
-          'foo|bar/baz|wibble/wobble;fizz;a.b|c/d|e/f;x|y|zz|y', _onError);
+          'foo|bar/baz|wibble/wobble;fizz;a.b|c/d|e/f;x|y|zz|y', onError);
       expect(errors.length, 2);
       expect(packages.length, 2);
       expect(packages['bar/baz']!.name, 'foo');
@@ -77,7 +77,7 @@ void main() {
 
     test('should emit error for conflicting package names', () {
       optionParser.parse(optionName,
-          'foo|bar/baz|wibble/wobble;flob|bar/baz|wibble/wobble', _onError);
+          'foo|bar/baz|wibble/wobble;flob|bar/baz|wibble/wobble', onError);
       expect(errors.length, 1);
       expect(packages.length, 1);
       expect(packages['bar/baz']!.name, 'foo');
@@ -85,15 +85,15 @@ void main() {
 
     test('should emit error for conflicting outputRoots', () {
       optionParser.parse(optionName,
-          'foo|bar/baz|wibble/wobble;foo|bar/baz|womble/wumble', _onError);
+          'foo|bar/baz|wibble/wobble;foo|bar/baz|womble/wumble', onError);
       expect(errors.length, 1);
       expect(packages.length, 1);
       expect(packages['bar/baz']!.outputRoot, 'wibble/wobble');
     });
 
     test('should normalize paths', () {
-      optionParser.parse(optionName,
-          'foo|bar//baz/|quux/;a|b/|c;c|d//e/f///|g//h//', _onError);
+      optionParser.parse(
+          optionName, 'foo|bar//baz/|quux/;a|b/|c;c|d//e/f///|g//h//', onError);
       expect(errors, isEmpty);
       expect(packages.length, 3);
       expect(packages['bar/baz']!.name, 'foo');
@@ -124,25 +124,25 @@ void main() {
 
     group('outputPathForUri', () {
       test('should handle files at package root', () {
-        var p =
+        final p =
             config.outputPathFor(Uri.parse('foo/bar/quux.proto'), '.pb.dart');
         expect(p.path, 'baz/flob/quux.pb.dart');
       });
 
       test('should handle files below package root', () {
-        var p = config.outputPathFor(
+        final p = config.outputPathFor(
             Uri.parse('foo/bar/a/b/quux.proto'), '.pb.dart');
         expect(p.path, 'baz/flob/a/b/quux.pb.dart');
       });
 
       test('should handle files in a nested package root', () {
-        var p = config.outputPathFor(
+        final p = config.outputPathFor(
             Uri.parse('foo/bar/baz/quux.proto'), '.pb.dart');
         expect(p.path, 'baz/flob/foo/quux.pb.dart');
       });
 
       test('should handle files below a nested package root', () {
-        var p = config.outputPathFor(
+        final p = config.outputPathFor(
             Uri.parse('foo/bar/baz/a/b/quux.proto'), '.pb.dart');
         expect(p.path, 'baz/flob/foo/a/b/quux.pb.dart');
       });
@@ -157,45 +157,45 @@ void main() {
 
     group('resolveImport', () {
       test('should emit relative import if in same package', () {
-        var target = Uri.parse('foo/bar/quux.proto');
-        var source = Uri.parse('foo/bar/baz.proto');
-        var uri = config.resolveImport(target, source, '.pb.dart');
+        final target = Uri.parse('foo/bar/quux.proto');
+        final source = Uri.parse('foo/bar/baz.proto');
+        final uri = config.resolveImport(target, source, '.pb.dart');
         expect(uri.path, 'quux.pb.dart');
       });
 
       test('should emit relative import if in subdir of same package', () {
-        var target = Uri.parse('foo/bar/a/b/quux.proto');
-        var source = Uri.parse('foo/bar/baz.proto');
-        var uri = config.resolveImport(target, source, '.pb.dart');
+        final target = Uri.parse('foo/bar/a/b/quux.proto');
+        final source = Uri.parse('foo/bar/baz.proto');
+        final uri = config.resolveImport(target, source, '.pb.dart');
         expect(uri.path, 'a/b/quux.pb.dart');
       });
 
       test('should emit relative import if in parent dir in same package', () {
-        var target = Uri.parse('foo/bar/quux.proto');
-        var source = Uri.parse('foo/bar/a/b/baz.proto');
-        var uri = config.resolveImport(target, source, '.pb.dart');
+        final target = Uri.parse('foo/bar/quux.proto');
+        final source = Uri.parse('foo/bar/a/b/baz.proto');
+        final uri = config.resolveImport(target, source, '.pb.dart');
         expect(uri.path, '../../quux.pb.dart');
       });
 
       test('should emit package: import if in different package', () {
-        var target = Uri.parse('wibble/wobble/quux.proto');
-        var source = Uri.parse('foo/bar/baz.proto');
-        var uri = config.resolveImport(target, source, '.pb.dart');
+        final target = Uri.parse('wibble/wobble/quux.proto');
+        final source = Uri.parse('foo/bar/baz.proto');
+        final uri = config.resolveImport(target, source, '.pb.dart');
         expect(uri.scheme, 'package');
         expect(uri.path, 'wibble.wobble/quux.pb.dart');
       });
 
       test('should emit package: import if in subdir of different package', () {
-        var target = Uri.parse('wibble/wobble/foo/bar/quux.proto');
-        var source = Uri.parse('foo/bar/baz.proto');
-        var uri = config.resolveImport(target, source, '.pb.dart');
+        final target = Uri.parse('wibble/wobble/foo/bar/quux.proto');
+        final source = Uri.parse('foo/bar/baz.proto');
+        final uri = config.resolveImport(target, source, '.pb.dart');
         expect(uri.scheme, 'package');
         expect(uri.path, 'wibble.wobble/foo/bar/quux.pb.dart');
       });
 
       test('should throw if target is in unknown package', () {
-        var target = Uri.parse('flob/flub/quux.proto');
-        var source = Uri.parse('foo/bar/baz.proto');
+        final target = Uri.parse('flob/flub/quux.proto');
+        final source = Uri.parse('foo/bar/baz.proto');
         expect(() => config.resolveImport(target, source, '.pb.dart'),
             throwsA(startsWith('ERROR: cannot generate import for')));
       });

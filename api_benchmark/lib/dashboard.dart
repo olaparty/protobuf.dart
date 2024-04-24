@@ -5,32 +5,32 @@
 import 'dart:async' show Future;
 import 'dart:convert';
 import 'dart:html';
-import 'dart:js' show context, JsObject;
+import 'dart:js' show JsObject, context;
 
 import 'benchmark.dart' show Profiler;
-import 'dashboard_model.dart' show DashboardModel, Table, SelectEvent;
+import 'dashboard_model.dart' show DashboardModel, SelectEvent, Table;
 import 'dashboard_view.dart' show DashboardView;
 import 'data_index.dart' as data;
 import 'generated/benchmark.pb.dart' as pb;
-import 'report.dart' show createPlatform, createPackages;
+import 'report.dart' show createPackages, createPlatform;
 import 'suite.dart' show runSuite;
 
 /// Displays a dashboard that can be used to run benchmarks.
 Future showDashboard(pb.Suite suite, Element container) async {
   // set up model
 
-  var env = await loadBrowserEnv();
-  var reports = await loadReports(suite);
+  final env = await loadBrowserEnv();
+  final reports = await loadReports(suite);
 
-  var defaultReport = pb.Report()..env = env;
+  final defaultReport = pb.Report()..env = env;
   var model = DashboardModel(reports, Table(suite), defaultReport);
 
-  var baseline = chooseBaseline(env, reports);
+  final baseline = chooseBaseline(env, reports);
   if (baseline != null) {
     model = model.withBaseline(baseline);
   }
 
-  var view = DashboardView();
+  final view = DashboardView();
 
   Future render(pb.Report report) async {
     report.env = env;
@@ -42,14 +42,14 @@ Future showDashboard(pb.Suite suite, Element container) async {
 
   // Set up the main loop that runs the suite.
 
-  bool running = false;
+  var running = false;
   void runBenchmarks() {
     if (running) return;
-    var profiler = JsProfiler();
+    final profiler = JsProfiler();
     running = true;
     () async {
-      var requests = model.table.selections.toList();
-      for (pb.Report report in runSuite(requests, profiler: profiler)) {
+      final requests = model.table.selections.toList();
+      for (final report in runSuite(requests, profiler: profiler)) {
         await render(report);
       }
     }()
@@ -70,13 +70,13 @@ Future showDashboard(pb.Suite suite, Element container) async {
     view.render(model);
   });
 
-  view.onMenuChange.listen((String item) {
+  view.onMenuChange.listen((String? item) {
     model = model.withBaseline(item);
     view.render(model);
   });
 
   view.onSelectionChange.listen((SelectEvent e) {
-    model = model.withTable(model.table.withSelection(e.item, e.selected));
+    model = model.withTable(model.table.withSelection(e.item, e.selected!));
     view.render(model);
   });
 
@@ -89,49 +89,51 @@ Future showDashboard(pb.Suite suite, Element container) async {
 
 /// Starts and stops the DevTools profiler.
 class JsProfiler implements Profiler {
-  static JsObject console = context['console'];
+  static JsObject? console = context['console'];
 
   int count = 1;
 
   @override
-  startProfile(pb.Request request) {
-    var label = '$count-${request.id.name}';
+  void startProfile(pb.Request request) {
+    final label = '$count-${request.id.name}';
     count++;
-    console.callMethod('profile', [label]);
+    console!.callMethod('profile', [label]);
   }
 
   @override
-  endProfile(pb.Sample s) {
-    console.callMethod('profileEnd');
+  void endProfile(pb.Sample s) {
+    console!.callMethod('profileEnd');
     print('profile: $s');
   }
 }
 
 Future<pb.Env> loadBrowserEnv() async {
   const advice = 'Run a VM benchmark to create this file.';
-  var pubspecYaml = await _loadDataFile(data.pubspecYamlName, advice: advice);
-  var pubspecLock = await _loadDataFile(data.pubspecLockName, advice: advice);
-  var hostname = await _loadDataFile(data.hostfileName, advice: advice);
+  final pubspecYaml =
+      (await _loadDataFile(data.pubspecYamlName, advice: advice))!;
+  final pubspecLock =
+      (await _loadDataFile(data.pubspecLockName, advice: advice))!;
+  final hostname = (await _loadDataFile(data.hostfileName, advice: advice))!;
 
-  var platform = createPlatform()
+  final platform = createPlatform()
     ..hostname = hostname
     ..userAgent = window.navigator.userAgent;
 
   return pb.Env()
-    ..page = window.location.pathname
+    ..page = window.location.pathname!
     ..platform = platform
     ..packages = createPackages(pubspecYaml, pubspecLock);
 }
 
 /// Loads all the reports saved to benchmark/data.
 Future<Map<String, pb.Report>> loadReports(pb.Suite suite) async {
-  var out = <String, pb.Report>{};
+  final out = <String, pb.Report>{};
 
-  var dataJsonContent = await _loadDataFile('data.json');
-  var dataJson = jsonDecode(dataJsonContent) as Map<String, dynamic>;
+  final dataJsonContent = (await _loadDataFile('data.json'))!;
+  final dataJson = jsonDecode(dataJsonContent) as Map<String, dynamic>;
 
-  for (var entry in dataJson.entries) {
-    var report = pb.Report.fromJson(entry.value);
+  for (final entry in dataJson.entries) {
+    final report = pb.Report.fromJson(entry.value);
     if (isCompatibleBaseline(suite, report)) {
       out[entry.key] = report;
     }
@@ -142,9 +144,9 @@ Future<Map<String, pb.Report>> loadReports(pb.Suite suite) async {
 
 /// Choose the report to display on the left side for comparison.
 /// Returns null if no comparable report is found.
-String chooseBaseline(pb.Env env, Map<String, pb.Report> reports) {
-  for (var name in reports.keys) {
-    var candidate = reports[name];
+String? chooseBaseline(pb.Env env, Map<String, pb.Report> reports) {
+  for (final name in reports.keys) {
+    final candidate = reports[name]!;
     if (candidate.env.platform == env.platform) {
       return name;
     }
@@ -154,24 +156,24 @@ String chooseBaseline(pb.Env env, Map<String, pb.Report> reports) {
 
 /// Returns true if the baseline report used the same benchmarks.
 bool isCompatibleBaseline(pb.Suite suite, pb.Report report) {
-  for (int i = 0; i < suite.requests.length; i++) {
+  for (var i = 0; i < suite.requests.length; i++) {
     if (i >= report.responses.length) {
       return true; // additional benchmarks ok
     }
-    var request = suite.requests[i];
-    var response = report.responses[i];
+    final request = suite.requests[i];
+    final response = report.responses[i];
     if (request != response.request) return false;
   }
   return true;
 }
 
-Future<String> _loadDataFile(String name,
-    {bool optional = false, String advice}) async {
+Future<String?> _loadDataFile(String name,
+    {bool optional = false, String? advice}) async {
   try {
     return await HttpRequest.getString('/data/$name');
   } catch (e) {
     if (optional) return null;
-    String error = 'File is missing in benchmark/data: $name';
+    var error = 'File is missing in benchmark/data: $name';
     if (advice != null) {
       error += '. $advice';
     }

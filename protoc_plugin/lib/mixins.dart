@@ -4,15 +4,17 @@
 
 /// Provides metadata about mixins to dart-protoc-plugin.
 /// (Experimental API; subject to change.)
+library;
+
 import 'indenting_writer.dart';
 
 /// Finds [name] in the exported mixins.
 PbMixin? findMixin(String name) {
-  const _exportedMixins = {
+  const exportedMixins = {
     'PbMapMixin': _pbMapMixin,
     'PbEventMixin': _pbEventMixin,
   };
-  return _exportedMixins[name];
+  return exportedMixins[name];
 }
 
 /// PbMixin contains metadata needed by dart-protoc-plugin to apply a mixin.
@@ -39,7 +41,7 @@ class PbMixin {
   /// Typically used for static helpers since you cannot mix in static members.
   final List<String>? injectedHelpers;
 
-  /// If `True` the mixin should have static methods for converting to and from
+  /// Whether the mixin should have static methods for converting to and from
   /// proto3 Json.
   final bool hasProto3JsonHelpers;
 
@@ -54,7 +56,7 @@ class PbMixin {
 
   /// Returns the mixin and its ancestors, in the order they should be applied.
   Iterable<PbMixin> findMixinsToApply() {
-    var result = [this];
+    final result = [this];
     for (var p = parent; p != null; p = p.parent) {
       result.add(p);
     }
@@ -63,7 +65,7 @@ class PbMixin {
 
   /// Returns all the reserved names, including from ancestor mixins.
   Iterable<String> findReservedNames() {
-    var names = <String>{};
+    final names = <String>{};
     for (PbMixin? m = this; m != null; m = m.parent) {
       names.add(m.name);
       if (m.reservedNames != null) {

@@ -17,7 +17,7 @@ class ClientApiGenerator {
             defaultSuffixes());
 
   // Subclasses can override this.
-  String get _clientType => '${protobufImportPrefix}RpcClient';
+  String get _clientType => '$protobufImportPrefix.RpcClient';
 
   void generate(IndentingWriter out) {
     out.addBlock('class ${className}Api {', '}', () {
@@ -25,7 +25,7 @@ class ClientApiGenerator {
       out.println('${className}Api(this._client);');
       out.println();
 
-      for (var m in service._descriptor.method) {
+      for (final m in service._descriptor.method) {
         generateMethod(out, m);
       }
     });
@@ -34,19 +34,19 @@ class ClientApiGenerator {
 
   // Subclasses can override this.
   void generateMethod(IndentingWriter out, MethodDescriptorProto m) {
-    var methodName = disambiguateName(
+    final methodName = disambiguateName(
         avoidInitialUnderscore(service._methodName(m.name)),
         usedMethodNames,
         defaultSuffixes());
-    var inputType = service._getDartClassName(m.inputType, forMainFile: true);
-    var outputType = service._getDartClassName(m.outputType, forMainFile: true);
+    final inputType = service._getDartClassName(m.inputType, forMainFile: true);
+    final outputType =
+        service._getDartClassName(m.outputType, forMainFile: true);
     out.addBlock(
-        '${asyncImportPrefix}Future<$outputType> $methodName('
-            '${protobufImportPrefix}ClientContext? ctx, $inputType request) {',
-        '}', () {
-      out.println('var emptyResponse = $outputType();');
-      out.println('return _client.invoke<$outputType>(ctx, \'$className\', '
-          '\'${m.name}\', request, emptyResponse);');
+        '$asyncImportPrefix.Future<$outputType> $methodName('
+            '$protobufImportPrefix.ClientContext? ctx, $inputType request) =>',
+        ';', () {
+      out.println('_client.invoke<$outputType>(ctx, \'$className\', '
+          '\'${m.name}\', request, $outputType())');
     });
   }
 }

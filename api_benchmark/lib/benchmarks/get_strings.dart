@@ -4,28 +4,28 @@
 
 import '../benchmark.dart';
 import '../generated/benchmark.pb.dart'
-    show BenchmarkID, Request, Params, Sample;
+    show BenchmarkID, Params, Request, Sample;
 import '../generated/string_grid.pb.dart' as pb;
 
 /// A benchmark that accesses each value in a grid of string fields.
 class GetStringsBenchmark extends Benchmark {
   static const width = 10;
   final int height;
-  final String fillValue; // null means start uninitialized.
-  pb.Grid10 grid;
+  final String? fillValue; // null means start uninitialized.
+  late pb.Grid10 grid;
 
   GetStringsBenchmark(this.height, this.fillValue) : super($id);
 
   @override
-  get summary {
-    var fill = fillValue == null ? 'null' : "'$fillValue'";
+  String get summary {
+    final fill = fillValue == null ? 'null' : "'$fillValue'";
     return '${id.name}($height x $fill)';
   }
 
   @override
   Params makeParams() {
-    var p = Params()..messageCount = height;
-    if (fillValue != null) p.stringValue = fillValue;
+    final p = Params()..messageCount = height;
+    if (fillValue != null) p.stringValue = fillValue!;
     return p;
   }
 
@@ -35,14 +35,14 @@ class GetStringsBenchmark extends Benchmark {
   }
 
   // makes a rectangle where every cell has the same value.
-  static pb.Grid10 _makeGrid(int height, String fillValue) {
-    var grid = pb.Grid10();
+  static pb.Grid10 _makeGrid(int height, String? fillValue) {
+    final grid = pb.Grid10();
 
-    for (int y = 0; y < height; y++) {
-      var line = pb.Line10();
+    for (var y = 0; y < height; y++) {
+      final line = pb.Line10();
       if (fillValue != null) {
-        for (int x = 0; x < width; x++) {
-          int tag = getTagForColumn(line, x);
+        for (var x = 0; x < width; x++) {
+          final tag = getTagForColumn(line, x);
           line.setField(tag, fillValue);
         }
       }
@@ -53,13 +53,13 @@ class GetStringsBenchmark extends Benchmark {
   }
 
   static int getTagForColumn(pb.Line10 line, int x) {
-    return line.getTagNumber('cell${x + 1}'); // assume x start from 1
+    return line.getTagNumber('cell${x + 1}')!; // assume x start from 1
   }
 
   @override
   int exercise() {
     const reps = 100;
-    for (int i = 0; i < reps; i++) {
+    for (var i = 0; i < reps; i++) {
       run();
     }
     return reps;
@@ -75,8 +75,8 @@ class GetStringsBenchmark extends Benchmark {
   }
 
   void _getDefaults() {
-    bool ok = true;
-    for (var line in grid.lines) {
+    var ok = true;
+    for (final line in grid.lines) {
       ok = ok && line.cell1.isEmpty;
       ok = ok && line.cell2.isEmpty;
       ok = ok && line.cell3.isEmpty;
@@ -92,8 +92,8 @@ class GetStringsBenchmark extends Benchmark {
   }
 
   void _getStrings() {
-    bool ok = true;
-    for (var line in grid.lines) {
+    var ok = true;
+    for (final line in grid.lines) {
       ok = ok && line.cell1.isNotEmpty;
       ok = ok && line.cell2.isNotEmpty;
       ok = ok && line.cell3.isNotEmpty;
@@ -114,17 +114,17 @@ class GetStringsBenchmark extends Benchmark {
   }
 
   @override
-  measureSample(Sample s) => stringReadsPerMillisecond(s);
+  double measureSample(Sample? s) => stringReadsPerMillisecond(s);
 
   @override
-  get measureSampleUnits => 'string reads/ms';
+  String get measureSampleUnits => 'string reads/ms';
 
   static const $id = BenchmarkID.GET_STRINGS;
   static final $type = BenchmarkType($id, $create);
 
   static GetStringsBenchmark $create(Request r) {
     assert(r.params.hasMessageCount());
-    String value;
+    String? value;
     if (r.params.hasStringValue()) value = r.params.stringValue;
     return GetStringsBenchmark(r.params.messageCount, value);
   }

@@ -140,7 +140,7 @@ void main() {
     });
 
     test('testUnsignedOutput', () {
-      var message = TestAllTypes();
+      final message = TestAllTypes();
       // These values are selected because they are large enough to set the sign bit.
       message.optionalUint64 = Int64.parseHex('f0000000ffff0000');
       message.optionalFixed64 = Int64.parseHex('f0000000ffff0001');
@@ -153,7 +153,7 @@ void main() {
 
     test('doubles', () {
       void testValue(double value, Object expected) {
-        var message = TestAllTypes()
+        final message = TestAllTypes()
           ..defaultFloat = value
           ..defaultDouble = value;
         expect(
@@ -170,7 +170,7 @@ void main() {
     });
 
     test('map value', () {
-      var message = TestMap()
+      final message = TestMap()
         ..int32ToInt32Field[32] = 32
         ..int32ToStringField[0] = 'foo'
         ..int32ToStringField[1] = 'bar'
@@ -402,7 +402,7 @@ void main() {
     test('Nulls', () {
       final decoded = TestAllTypes()
         ..mergeFromProto3Json({'defaultString': null});
-      expect(decoded, TestAllTypes()..defaultString = 'hello');
+      expect(decoded, TestAllTypes());
     });
     test('decode TestAllTypes', () {
       final decoded = TestAllTypes()..mergeFromProto3Json(testAllTypesJson);
@@ -725,7 +725,7 @@ void main() {
     });
 
     test('map value', () {
-      var expected = TestMap()
+      final expected = TestMap()
         ..int32ToInt32Field[32] = 32
         ..int32ToStringField[0] = 'foo'
         ..int32ToStringField[1] = 'bar'
@@ -1181,16 +1181,7 @@ void main() {
               'stringField': null,
               'bytesField': null,
             }),
-          TestWellKnownTypes()
-            ..doubleField = DoubleValue()
-            ..floatField = FloatValue()
-            ..int64Field = Int64Value()
-            ..uint64Field = UInt64Value()
-            ..int32Field = Int32Value()
-            ..uint32Field = UInt32Value()
-            ..boolField = BoolValue()
-            ..stringField = StringValue()
-            ..bytesField = BytesValue(),
+          TestWellKnownTypes(),
           reason: 'having fields of wrapper types set to null will return an '
               'empty wrapper (with unset .value field)');
     });
@@ -1265,14 +1256,14 @@ void main() {
   group('Convert Double', () {
     test('With Decimal', () {
       final json = {'optionalDouble': 1.2};
-      var proto = TestAllTypes()..optionalDouble = 1.2;
+      final proto = TestAllTypes()..optionalDouble = 1.2;
       expect(TestAllTypes()..mergeFromProto3Json(json), proto);
       expect(proto.toProto3Json(), json);
     });
 
     test('Whole Number', () {
       final json = {'optionalDouble': 5};
-      var proto = TestAllTypes()..optionalDouble = 5.0;
+      final proto = TestAllTypes()..optionalDouble = 5.0;
       expect(TestAllTypes()..mergeFromProto3Json(json), proto);
       expect(proto.toProto3Json(), json);
       expect(jsonEncode(proto.toProto3Json()), '{"optionalDouble":5}');
@@ -1280,14 +1271,14 @@ void main() {
 
     test('Infinity', () {
       final json = {'optionalDouble': 'Infinity'};
-      var proto = TestAllTypes()..optionalDouble = double.infinity;
+      final proto = TestAllTypes()..optionalDouble = double.infinity;
       expect(TestAllTypes()..mergeFromProto3Json(json), proto);
       expect(proto.toProto3Json(), json);
     });
 
     test('Negative Infinity', () {
       final json = {'optionalDouble': '-Infinity'};
-      var proto = TestAllTypes()..optionalDouble = double.negativeInfinity;
+      final proto = TestAllTypes()..optionalDouble = double.negativeInfinity;
       expect(TestAllTypes()..mergeFromProto3Json(json), proto);
       expect(proto.toProto3Json(), json);
     });
