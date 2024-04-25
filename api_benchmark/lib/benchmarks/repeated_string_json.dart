@@ -4,7 +4,7 @@
 
 import '../benchmark.dart';
 import '../generated/benchmark.pb.dart'
-    show BenchmarkID, Request, Params, Sample;
+    show BenchmarkID, Params, Request, Sample;
 import '../generated/string_grid.pb.dart' as pb;
 
 /// A benchmark that deserializes a grid of string fields.
@@ -12,14 +12,14 @@ class RepeatedStringBenchmark extends Benchmark {
   final int width;
   final int height;
   final int stringSize;
-  String json;
-  int lastFieldTag;
+  late String json;
+  int? lastFieldTag;
 
   RepeatedStringBenchmark(this.width, this.height, this.stringSize)
       : super($id);
 
   @override
-  get summary => '${id.name}($width x $height x $stringSize)';
+  String get summary => '${id.name}($width x $height x $stringSize)';
 
   @override
   Params makeParams() => Params()
@@ -29,7 +29,7 @@ class RepeatedStringBenchmark extends Benchmark {
 
   @override
   void setup() {
-    var grid = _makeGrid(width, height, stringSize);
+    final grid = _makeGrid(width, height, stringSize);
     json = grid.writeToJson();
   }
 
@@ -39,14 +39,14 @@ class RepeatedStringBenchmark extends Benchmark {
   // "23" "34" "45" "56"
   static pb.Grid _makeGrid(int width, int height, int stringSize) {
     if (width > 10) throw ArgumentError('width out of range: $width');
-    var grid = pb.Grid();
+    final grid = pb.Grid();
 
-    int zero = '0'.codeUnits[0];
+    final zero = '0'.codeUnits[0];
 
-    for (int y = 0; y < height; y++) {
-      var line = pb.Line();
-      for (int x = 0; x < width; x++) {
-        var charCodes = <int>[];
+    for (var y = 0; y < height; y++) {
+      final line = pb.Line();
+      for (var x = 0; x < width; x++) {
+        final charCodes = <int>[];
         for (var i = 0; i < stringSize; i++) {
           charCodes.add(zero + ((x + y + i) % 10));
         }
@@ -59,8 +59,8 @@ class RepeatedStringBenchmark extends Benchmark {
 
   @override
   void run() {
-    pb.Grid grid = pb.Grid.fromJson(json);
-    var actual = grid.lines[height - 1].cells[width - 1];
+    final grid = pb.Grid.fromJson(json);
+    final actual = grid.lines[height - 1].cells[width - 1];
     if (actual.length != stringSize) throw 'failed; got $actual';
   }
 
@@ -70,10 +70,10 @@ class RepeatedStringBenchmark extends Benchmark {
   }
 
   @override
-  measureSample(Sample s) => stringReadsPerMillisecond(s);
+  double measureSample(Sample? s) => stringReadsPerMillisecond(s);
 
   @override
-  get measureSampleUnits => 'string reads/ms';
+  String get measureSampleUnits => 'string reads/ms';
 
   static const $id = BenchmarkID.READ_STRING_REPEATED_JSON;
   static final $type = BenchmarkType($id, $create);

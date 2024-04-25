@@ -4,19 +4,19 @@
 
 import '../benchmark.dart';
 import '../generated/benchmark.pb.dart'
-    show BenchmarkID, Request, Params, Sample;
+    show BenchmarkID, Params, Request, Sample;
 import '../generated/int32grid.pb.dart' as pb;
 
 /// A benchmark that deserializes a grid of repeated ints.
 class RepeatedInt32Benchmark extends Benchmark {
   final int width;
   final int height;
-  String json;
+  late String json;
 
   RepeatedInt32Benchmark(this.width, this.height) : super($id);
 
   @override
-  get summary => '${id.name}($width x $height ints)';
+  String get summary => '${id.name}($width x $height ints)';
 
   @override
   Params makeParams() => Params()
@@ -25,7 +25,7 @@ class RepeatedInt32Benchmark extends Benchmark {
 
   @override
   void setup() {
-    var grid = _makeGrid(width, height);
+    final grid = _makeGrid(width, height);
     json = grid.writeToJson();
   }
 
@@ -34,11 +34,11 @@ class RepeatedInt32Benchmark extends Benchmark {
   // 1 2 3 4
   // 2 3 4 5
   static pb.Grid _makeGrid(int width, int height) {
-    var grid = pb.Grid();
+    final grid = pb.Grid();
 
-    for (int y = 0; y < height; y++) {
-      var line = pb.Line();
-      for (int x = 0; x < width; x++) {
+    for (var y = 0; y < height; y++) {
+      final line = pb.Line();
+      for (var x = 0; x < width; x++) {
         line.cells.add(x + y);
       }
       grid.lines.add(line);
@@ -49,8 +49,8 @@ class RepeatedInt32Benchmark extends Benchmark {
 
   @override
   void run() {
-    pb.Grid grid = pb.Grid.fromJson(json);
-    var actual = grid.lines[height - 1].cells[width - 1];
+    final grid = pb.Grid.fromJson(json);
+    final actual = grid.lines[height - 1].cells[width - 1];
     if (actual != width + height - 2) throw 'failed; got $actual';
   }
 
@@ -60,10 +60,10 @@ class RepeatedInt32Benchmark extends Benchmark {
   }
 
   @override
-  measureSample(Sample s) => int32ReadsPerMillisecond(s);
+  double measureSample(Sample? s) => int32ReadsPerMillisecond(s);
 
   @override
-  get measureSampleUnits => 'int32 reads/ms';
+  String get measureSampleUnits => 'int32 reads/ms';
 
   static const $id = BenchmarkID.READ_INT32_REPEATED_JSON;
   static final $type = BenchmarkType($id, $create);

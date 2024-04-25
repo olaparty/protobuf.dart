@@ -3,31 +3,31 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import 'dart:async' show Future;
-import 'dart:io' show File, Directory, Link, Platform, stdout;
+import 'dart:io' show Directory, File, Link, Platform, stdout;
 
 import 'benchmarks/index.dart' show createBenchmark;
 import 'data_index.dart'
-    show latestVMReportName, pubspecYamlName, pubspecLockName, hostfileName;
+    show hostfileName, latestVMReportName, pubspecLockName, pubspecYamlName;
 import 'generated/benchmark.pb.dart' as pb;
 import 'report.dart'
-    show createPlatform, createPackages, encodeReport, findUpdatedResponse;
+    show createPackages, createPlatform, encodeReport, findUpdatedResponse;
 import 'suite.dart' show runSuite;
 
 /// Runs a benchmark suite.
 /// Writes a report to latest_vm.pb.json after every change,
 /// to make progress available to the browser.
-runSuiteInVM(pb.Suite suite) async {
-  var env = await _loadEnv();
+Future<void> runSuiteInVM(pb.Suite suite) async {
+  final env = await _loadEnv();
 
-  pb.Report lastReport;
-  pb.Response lastUpdate;
-  for (var report in runSuite(suite.requests, samplesPerBatch: 10)) {
+  pb.Report? lastReport;
+  pb.Response? lastUpdate;
+  for (final report in runSuite(suite.requests, samplesPerBatch: 10)) {
     report.env = env;
 
     // show progress
-    var update = findUpdatedResponse(lastReport, report);
+    final update = findUpdatedResponse(lastReport, report);
     if (update != null) {
-      var summary = _summarize(update);
+      final summary = _summarize(update);
       if (lastUpdate == null || update.request != lastUpdate.request) {
         stdout.write('\n$summary');
       } else {
@@ -40,16 +40,15 @@ runSuiteInVM(pb.Suite suite) async {
   }
 
   // save the report to a file
-  var outFile = '${dataDir.path}/$latestVMReportName';
-  var tmpFile = File('$outFile.tmp');
-  await tmpFile.writeAsString(encodeReport(lastReport));
+  final outFile = '${dataDir.path}/$latestVMReportName';
+  final tmpFile = File('$outFile.tmp');
+  await tmpFile.writeAsString(encodeReport(lastReport!));
   await tmpFile.rename(outFile);
   print('\nWrote result to $outFile');
 }
 
 String _summarize(pb.Response r) {
-  assert(r != null);
-  var b = createBenchmark(r.request);
+  final b = createBenchmark(r.request);
   return b.summarizeResponse(r);
 }
 
@@ -64,13 +63,13 @@ void _overwrite(String line) {
 Future<pb.Env> _loadEnv() async {
   await _ensureDataDir();
 
-  var platform = createPlatform()
+  final platform = createPlatform()
     ..hostname = _hostname
     ..osType = _osType
     ..dartVersion = Platform.version;
 
-  var pubspec = await (File(pubspecYaml.path).readAsString());
-  var lock = await (File(pubspecLock.path).readAsString());
+  final pubspec = await File(pubspecYaml.path).readAsString();
+  final lock = await File(pubspecLock.path).readAsString();
 
   return pb.Env()
     ..script = _script
@@ -81,7 +80,7 @@ Future<pb.Env> _loadEnv() async {
 /// Create files and symlinks in the data directory.
 ///
 /// This is so they can be accessed in browser benchmarks.
-_ensureDataDir() async {
+Future<void> _ensureDataDir() async {
   await hostnameFile.writeAsString(_hostname);
 
   if (!await pubspecYaml.exists()) {
@@ -100,8 +99,8 @@ String get _script {
 
 String get _hostname {
   // Only including the first part of the hostname.
-  var h = Platform.localHostname;
-  int firstDot = h.indexOf('.');
+  final h = Platform.localHostname;
+  final firstDot = h.indexOf('.');
   if (firstDot == -1) return h;
   return h.substring(0, firstDot);
 }
@@ -121,14 +120,14 @@ final Link pubspecYaml = Link('${dataDir.path}/$pubspecYamlName');
 final Link pubspecLock = Link('${dataDir.path}/$pubspecLockName');
 
 final Directory dataDir = () {
-  var d = Directory('${pubspecDir.path}/web/data');
+  final d = Directory('${pubspecDir.path}/web/data');
   if (!d.existsSync()) {
     throw "data dir doesn't exist at ${d.path}";
   }
   return d;
 }();
 
-/// Returns the directory containing the pubspec.yaml file.
+/// The directory containing the pubspec.yaml file.
 final Directory pubspecDir = () {
   for (var d = Directory.current; d.parent != d; d = d.parent) {
     if (File('${d.path}/pubspec.yaml').existsSync()) {

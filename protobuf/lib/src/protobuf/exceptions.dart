@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-part of protobuf;
+part of '../../protobuf.dart';
 
 const _truncatedMessageText = '''
 While parsing a protocol message, the input ended unexpectedly
@@ -42,9 +42,7 @@ Use CodedBufferReader.setRecursionLimit() to increase the depth limit.
 
   InvalidProtocolBufferException.truncatedMessageDueToSizeLimit(
       int originalSize, int truncatedSize)
-      : this._(_truncatedMessageText +
-            '''
-
+      : this._('''$_truncatedMessageText
 Note that the buffer containing the message has $originalSize bytes, but
 CodedBufferReader was allowed to parse only $truncatedSize bytes.
 ''');

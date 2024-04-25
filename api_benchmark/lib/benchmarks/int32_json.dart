@@ -4,20 +4,20 @@
 
 import '../benchmark.dart';
 import '../generated/benchmark.pb.dart'
-    show BenchmarkID, Request, Params, Sample;
+    show BenchmarkID, Params, Request, Sample;
 import '../generated/int32grid.pb.dart' as pb;
 
 /// A benchmark that deserializes a grid of int fields.
 class Int32Benchmark extends Benchmark {
   final int width;
   final int height;
-  String json;
-  int lastFieldTag;
+  late String json;
+  int? lastFieldTag;
 
   Int32Benchmark(this.width, this.height) : super($id);
 
   @override
-  get summary => '${id.name}($width x $height int32s)';
+  String get summary => '${id.name}($width x $height int32s)';
 
   @override
   Params makeParams() => Params()
@@ -26,7 +26,7 @@ class Int32Benchmark extends Benchmark {
 
   @override
   void setup() {
-    var grid = _makeGrid(width, height);
+    final grid = _makeGrid(width, height);
     json = grid.writeToJson();
     lastFieldTag = getTagForColumn(pb.Line10(), width - 1);
   }
@@ -37,12 +37,12 @@ class Int32Benchmark extends Benchmark {
   // 2 3 4 5
   static pb.Grid10 _makeGrid(int width, int height) {
     if (width > 10) throw ArgumentError('width out of range: $width');
-    var grid = pb.Grid10();
+    final grid = pb.Grid10();
 
-    for (int y = 0; y < height; y++) {
-      var line = pb.Line10();
-      for (int x = 0; x < width; x++) {
-        int tag = getTagForColumn(line, x);
+    for (var y = 0; y < height; y++) {
+      final line = pb.Line10();
+      for (var x = 0; x < width; x++) {
+        final tag = getTagForColumn(line, x)!;
         line.setField(tag, x + y);
       }
       grid.lines.add(line);
@@ -51,14 +51,14 @@ class Int32Benchmark extends Benchmark {
     return grid;
   }
 
-  static int getTagForColumn(pb.Line10 line, int x) {
+  static int? getTagForColumn(pb.Line10 line, int x) {
     return line.getTagNumber('cell${x + 1}'); // assume x start from 1
   }
 
   @override
   void run() {
-    pb.Grid10 grid = pb.Grid10.fromJson(json);
-    var actual = grid.lines[height - 1].getField(lastFieldTag);
+    final grid = pb.Grid10.fromJson(json);
+    final actual = grid.lines[height - 1].getField(lastFieldTag!);
     if (actual != width + height - 2) throw 'failed; got $actual';
   }
 
@@ -68,10 +68,10 @@ class Int32Benchmark extends Benchmark {
   }
 
   @override
-  measureSample(Sample s) => int32ReadsPerMillisecond(s);
+  double measureSample(Sample? s) => int32ReadsPerMillisecond(s);
 
   @override
-  get measureSampleUnits => 'int32 reads/ms';
+  String get measureSampleUnits => 'int32 reads/ms';
 
   static const $id = BenchmarkID.READ_INT32_FIELDS_JSON;
   static final $type = BenchmarkType($id, $create);

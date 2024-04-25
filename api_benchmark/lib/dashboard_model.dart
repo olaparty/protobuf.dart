@@ -14,8 +14,8 @@ class DashboardModel {
 
   DashboardModel(this.savedReports, this.table, this.latest);
 
-  DashboardModel withBaseline(String name) {
-    var nextTable = table.withBaseline(name, savedReports[name]);
+  DashboardModel withBaseline(String? name) {
+    final nextTable = table.withBaseline(name, savedReports[name]);
     return DashboardModel(savedReports, nextTable, latest);
   }
 
@@ -32,19 +32,20 @@ class DashboardModel {
 /// The parts of the benchmark results table that don't change often.
 class Table {
   final pb.Suite suite;
-  final String baseline;
-  final pb.Report report;
-  final Set<pb.Request> selections;
+  final String? baseline;
+  final pb.Report? report;
+  final Set<pb.Request?> selections;
   final rows = <Row>[];
 
   factory Table(pb.Suite suite) =>
       Table._raw(suite, null, null, Set<pb.Request>.from(suite.requests));
 
   Table._raw(this.suite, this.baseline, this.report, this.selections) {
-    Iterator it = report == null ? [].iterator : report.responses.iterator;
-    for (var r in suite.requests) {
-      var b = createBenchmark(r);
-      pb.Sample baseline;
+    final it =
+        report == null ? <pb.Response>[].iterator : report!.responses.iterator;
+    for (final r in suite.requests) {
+      final b = createBenchmark(r);
+      pb.Sample? baseline;
       if (it.moveNext()) {
         b.checkRequest(it.current.request);
         baseline = b.medianSample(it.current);
@@ -53,7 +54,7 @@ class Table {
     }
   }
 
-  Table withBaseline(String baseline, pb.Report report) =>
+  Table withBaseline(String? baseline, pb.Report? report) =>
       Table._raw(suite, baseline, report, selections);
 
   Table withAllSelected() {
@@ -65,8 +66,8 @@ class Table {
     return Table._raw(suite, baseline, report, <pb.Request>{});
   }
 
-  Table withSelection(pb.Request request, bool selected) {
-    var s = Set<pb.Request>.from(selections);
+  Table withSelection(pb.Request? request, bool selected) {
+    final s = Set<pb.Request?>.from(selections);
     if (selected) {
       s.add(request);
     } else {
@@ -80,13 +81,13 @@ class Table {
 class Row {
   final pb.Request request;
   final Benchmark benchmark;
-  final pb.Sample baseline;
+  final pb.Sample? baseline;
   final bool selected;
   Row(this.request, this.benchmark, this.baseline, {this.selected = true});
 
   /// Returns the response that should be displayed in this row.
-  pb.Response findResponse(pb.Report r) {
-    for (var candidate in r.responses) {
+  pb.Response? findResponse(pb.Report r) {
+    for (final candidate in r.responses) {
       if (candidate.request == request) return candidate;
     }
     return null;
@@ -95,9 +96,9 @@ class Row {
 
 // Indicates that the given item was added or removed from a selection.
 class SelectEvent<T> {
-  final bool selected;
-  final T item;
+  final bool? selected;
+  final T? item;
   SelectEvent(this.selected, [this.item]);
   @override
-  toString() => 'SelectEvent($selected, $item)';
+  String toString() => 'SelectEvent($selected, $item)';
 }

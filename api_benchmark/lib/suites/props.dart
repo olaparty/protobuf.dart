@@ -5,10 +5,10 @@
 import '../benchmarks/get_strings.dart';
 import '../benchmarks/has_strings.dart';
 import '../benchmarks/set_strings.dart';
-import '../generated/benchmark.pb.dart' show Suite;
+import '../generated/benchmark.pb.dart';
 
 final Suite propsSuite = () {
-  var suite = Suite();
+  final suite = Suite();
   suite.requests.addAll([
     _getStrings(10, null),
     _getStrings(10, 'x'),
@@ -21,9 +21,9 @@ final Suite propsSuite = () {
   return suite;
 }();
 
-_getStrings(int height, String fill) =>
+Request _getStrings(int height, String? fill) =>
     GetStringsBenchmark(height, fill).makeRequest();
-_setStrings(int height, String fill) =>
+Request _setStrings(int height, String? fill) =>
     SetStringsBenchmark(height, fill).makeRequest();
-_hasStrings(int height, String fill) =>
+Request _hasStrings(int height, String? fill) =>
     HasStringsBenchmark(height, fill).makeRequest();

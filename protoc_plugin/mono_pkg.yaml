@@ -5,11 +5,18 @@ stages:
       - format
       - command: ./../tool/setup.sh
       - command: make protos
-      - analyze: --fatal-infos
+      # Specify directores to exclude legacy_tests
+      - analyze: --fatal-infos bin lib test
       sdk: [dev]
   - run_tests:
     - group:
       - command: ./../tool/setup.sh
       - command: make protos
       - test
-      sdk: [2.12.0, dev]
+      sdk: [pubspec, dev]
+  - run_legacy_tests:
+    - group:
+      - command: ./../tool/setup.sh
+      - command: make protos
+      - test: legacy_tests/generated_message_test.dart
+      sdk: [pubspec]

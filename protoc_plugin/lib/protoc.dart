@@ -20,7 +20,6 @@ export 'src/code_generator.dart';
 
 part 'src/base_type.dart';
 part 'src/client_generator.dart';
-part 'src/custom_service_generator.dart';
 part 'src/enum_generator.dart';
 part 'src/extension_generator.dart';
 part 'src/file_generator.dart';
@@ -29,3 +28,4 @@ part 'src/message_generator.dart';
 part 'src/protobuf_field.dart';
 part 'src/service_generator.dart';
 part 'src/well_known_types.dart';
+part 'src/custom_service_generator.dart';
