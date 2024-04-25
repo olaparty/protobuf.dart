@@ -149,14 +149,11 @@ class _CustomApiMethod {
 
   void generateClientStub(IndentingWriter out) {
     out.println();
-    out.addBlock('static $_clientReturnType $_dartName($_argumentType request, {$coreImportPrefix.bool toastMessage = true, $coreImportPrefix.bool throwError = true}) async {', '}', () {
-    out.println("$coreImportPrefix.String url = '\${System.domain}$_apiPrefix$_serviceName/$_dartName';");
-    out.println('final proto = ProtobufOptions(requestMessage: request, responseMessage: $_responseType());');
-
-    var serviceName = convertServiceName(_serviceName);
-    var apiName = convertApiName(_dartName);
-
-
+    out.addBlock(
+        'static $_clientReturnType $_dartName($_argumentType request, {$coreImportPrefix.bool toastMessage = true, $coreImportPrefix.bool throwError = true}) async {',
+        '}', () {
+      out.println("$coreImportPrefix.String url = '\${System.domain}$_apiPrefix$_serviceName/$_dartName';");
+      out.println('final proto = ProtobufOptions(requestMessage: request, responseMessage: $_responseType());');
       out.println('XhrResponse response = await Xhr.postWithPbOptions(url, proto,throwOnError: false);');
       out.println('if (response.error == null) {');
       out.println('return proto.responseMessage as $_responseType;');

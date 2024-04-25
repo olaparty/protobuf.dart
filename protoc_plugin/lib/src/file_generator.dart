@@ -233,6 +233,7 @@ class FileGenerator extends ProtobufContainer {
     CodeGeneratorResponse_File makeFile(String extension, String content) {
       final protoUrl = Uri.file(descriptor.name);
       final dartUrl = config.outputPathFor(protoUrl, extension);
+      print(protoUrl);
       return CodeGeneratorResponse_File()
         ..name = dartUrl.path
         ..content = content;
