@@ -50,11 +50,13 @@ bool genericOptionsParser(CodeGeneratorRequest request,
 class GenerationOptions {
   final bool useGrpc;
   final bool generateMetadata;
+  final bool useCustomRpc;
   final bool disableConstructorArgs;
 
   GenerationOptions(
       {this.useGrpc = false,
       this.generateMetadata = false,
+      this.useCustomRpc = true,
       this.disableConstructorArgs = false});
 }
 

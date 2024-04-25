@@ -15,6 +15,8 @@ const String _coreImportUrl = 'dart:core';
 const String _fixnumImportPrefix = r'$fixnum';
 const String _grpcImportUrl = 'package:grpc/service_api.dart';
 const String _protobufImportUrl = 'package:protobuf/protobuf.dart';
+const String _bbcoreImportUrl = "// ignore: import_of_legacy_library_into_null_safe\nimport 'package:bbcore/bbcore.dart';";
+
 
 const String _typedDataImportPrefix = r'$typed_data';
 const String _typedDataImportUrl = 'dart:typed_data';
@@ -120,6 +122,7 @@ class FileGenerator extends ProtobufContainer {
   final clientApiGenerators = <ClientApiGenerator>[];
   final serviceGenerators = <ServiceGenerator>[];
   final grpcGenerators = <GrpcServiceGenerator>[];
+  final apiServiceGenerators = <CustomServiceGenerator>[];
 
   /// Used to avoid collisions after names have been mangled to match the Dart
   /// style.
@@ -252,8 +255,10 @@ class FileGenerator extends ProtobufContainer {
       if (grpcGenerators.isNotEmpty) {
         files.add(makeFile('.pbgrpc.dart', generateGrpcFile(config)));
       }
+    } if (options.useCustomRpc && apimethodCount > 0){
+      files.add(makeFile('.twirp.dart', generateApiFile(config)));
     } else {
-      files.add(makeFile('.pbserver.dart', generateServerFile(config)));
+      // files.add(makeFile('.pbserver.dart', generateServerFile(config)));
     }
     return files;
   }
@@ -448,6 +453,15 @@ class FileGenerator extends ProtobufContainer {
     return count;
   }
 
+  /// Returns the number of enum types generated in the .pbenum.dart file.
+  int get apimethodCount {
+    var count = 0;
+    for (var m in apiServiceGenerators) {
+      count += m._methods.length;
+    }
+    return count;
+  }
+
   /// Returns the contents of the .pbserver.dart file for this .proto file.
   String generateServerFile(
       [OutputConfiguration config = const DefaultOutputConfiguration()]) {
@@ -593,6 +607,41 @@ class FileGenerator extends ProtobufContainer {
       out.println('');
     }
 
+    return out.toString();
+  }
+
+  /// Returns the contents of the .pbgrpc.dart file for this .proto file.
+  String generateApiFile(
+      [OutputConfiguration config = const DefaultOutputConfiguration()]) {
+    if (!_linked) throw StateError('not linked');
+    final importWriter = ImportWriter();
+    var out = makeWriter();
+    _writeHeading(out);
+
+    importWriter.addImport(_asyncImportUrl, prefix: asyncImportPrefix);
+    importWriter.addImport(_bbcoreImportUrl, prefix: r'$bbcore');
+    importWriter.addImport(_convertImportUrl, prefix: _convertImportPrefix);
+    importWriter.addImport(_coreImportUrl, prefix: coreImportPrefix);
+
+    // Import .pb.dart files needed for requests and responses.
+    var imports = <FileGenerator>{};
+    for (var generator in apiServiceGenerators) {
+      generator.addImportsTo(imports);
+    }
+    for (var target in imports) {
+      
+      _addImport(importWriter, config, target, '.pb.dart');
+    }
+
+    var resolvedImport =
+        config.resolveImport(protoFileUri, protoFileUri, '.pb.dart');
+    out.println(importWriter.emit());
+    out.println("export '$resolvedImport';");
+    out.println();
+
+    for (var generator in apiServiceGenerators) {
+      generator.generate(out);
+    }
     return out.toString();
   }
 

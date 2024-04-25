@@ -28,3 +28,4 @@ part 'src/message_generator.dart';
 part 'src/protobuf_field.dart';
 part 'src/service_generator.dart';
 part 'src/well_known_types.dart';
+part 'src/custom_service_generator.dart';
