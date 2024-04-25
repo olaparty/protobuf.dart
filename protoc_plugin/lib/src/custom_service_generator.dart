@@ -43,7 +43,7 @@ class CustomServiceGenerator {
     }
 
     // avoid: ClientApi
-    _clientClassname = name.endsWith('Api') ? name : name + 'Api';
+    _clientClassname = name.endsWith('Api') ? name : '${name}Api';
   }
 
   /// Finds all message types used by this service.
@@ -92,7 +92,7 @@ class CustomServiceGenerator {
       // TODO(nichite): Throw more actionable error.
       throw 'FAILURE: Unknown type reference ($fqname) for $location';
     }
-    return mg.fileImportPrefix + mg.classname;
+    return '${mg.fileImportPrefix}.${mg.classname}';
   }
 
   void generate(IndentingWriter out) {
@@ -138,21 +138,21 @@ class _CustomApiMethod {
 
   void generateClientStub(IndentingWriter out) {
     out.println();
-    out.addBlock('static $_clientReturnType $_dartName($_argumentType request, {bool toastMessage = true, bool throwError = true}) async {', '}', () {
-    out.println("String url = '\${System.domain}$_apiPrefix$_serviceName/$_dartName';");
-    out.println("final proto = ProtobufOptions(requestMessage: request, responseMessage: $_responseType());");
+    out.addBlock('static $_clientReturnType $_dartName($_argumentType request, {$coreImportPrefix.bool toastMessage = true, $coreImportPrefix.bool throwError = true}) async {', '}', () {
+    out.println("$coreImportPrefix.String url = '\${System.domain}$_apiPrefix$_serviceName/$_dartName';");
+    out.println('final proto = ProtobufOptions(requestMessage: request, responseMessage: $_responseType());');
 
-    out.println("XhrResponse response = await Xhr.postWithPbOptions(url, proto,throwOnError: false);");
-    out.println("if (response.error == null) {");
-    out.println("return proto.responseMessage as $_responseType;");
-    out.println("}else if(response.error?.code == XhrErrorCode.HttpStatus){");
-    out.println("  response.error?.toastMessageOrThrow(toastMessage: toastMessage, throwError: throwError);");
-    out.println("}");
-    out.println("return null;");
+    out.println('XhrResponse response = await Xhr.postWithPbOptions(url, proto,throwOnError: false);');
+    out.println('if (response.error == null) {');
+    out.println('return proto.responseMessage as $_responseType;');
+    out.println('}else if(response.error?.code == XhrErrorCode.HttpStatus){');
+    out.println('  response.error?.toastMessageOrThrow(toastMessage: toastMessage, throwError: throwError);');
+    out.println('}');
+    out.println('return null;');
     });
   }
 
   static final String _apiPrefix = 'go/';
 
-  static final String _responseFuture = '${grpcImportPrefix}Future';
+  static final String _responseFuture = '$asyncImportPrefix.Future';
 }

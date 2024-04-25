@@ -35,6 +35,9 @@ void link(GenerationOptions? options, Iterable<FileGenerator> files) {
     for (final s in f.grpcGenerators) {
       s.resolve(ctx);
     }
+    for (final s in f.apiServiceGenerators) {
+      s.resolve(ctx);
+    }
   }
 }
 

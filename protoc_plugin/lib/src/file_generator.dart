@@ -15,7 +15,7 @@ const String _coreImportUrl = 'dart:core';
 const String _fixnumImportPrefix = r'$fixnum';
 const String _grpcImportUrl = 'package:grpc/service_api.dart';
 const String _protobufImportUrl = 'package:protobuf/protobuf.dart';
-const String _bbcoreImportUrl = "// ignore: import_of_legacy_library_into_null_safe\nimport 'package:bbcore/bbcore.dart';";
+const String _bbcoreImportUrl = 'package:bbcore/bbcore.dart';
 
 
 const String _typedDataImportPrefix = r'$typed_data';
@@ -179,7 +179,11 @@ class FileGenerator extends ProtobufContainer {
     for (final service in descriptor.service) {
       if (options.useGrpc) {
         grpcGenerators.add(GrpcServiceGenerator(service, this));
-      } else {
+      } 
+      if (options.useCustomRpc) {
+        apiServiceGenerators.add(CustomServiceGenerator(service, this));
+      }
+      else {
         final serviceGen =
             ServiceGenerator(service, this, usedTopLevelServiceNames);
         serviceGenerators.add(serviceGen);
@@ -615,11 +619,11 @@ class FileGenerator extends ProtobufContainer {
       [OutputConfiguration config = const DefaultOutputConfiguration()]) {
     if (!_linked) throw StateError('not linked');
     final importWriter = ImportWriter();
-    var out = makeWriter();
+    final out = makeWriter();
     _writeHeading(out);
 
     importWriter.addImport(_asyncImportUrl, prefix: asyncImportPrefix);
-    importWriter.addImport(_bbcoreImportUrl, prefix: r'$bbcore');
+    importWriter.addImport(_bbcoreImportUrl);
     importWriter.addImport(_convertImportUrl, prefix: _convertImportPrefix);
     importWriter.addImport(_coreImportUrl, prefix: coreImportPrefix);
 
