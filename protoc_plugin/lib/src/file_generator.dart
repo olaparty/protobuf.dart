@@ -230,10 +230,12 @@ class FileGenerator extends ProtobufContainer {
   List<CodeGeneratorResponse_File> generateFiles(OutputConfiguration config) {
     if (!_linked) throw StateError('not linked');
 
-    CodeGeneratorResponse_File makeFile(String extension, String content) {
-      final protoUrl = Uri.file(descriptor.name);
+    CodeGeneratorResponse_File makeFile(String extension, String content, {
+      String parentFolder = '.'
+    }) {
+      final protoUrl = Uri.file('$parentFolder/${descriptor.name}');
       final dartUrl = config.outputPathFor(protoUrl, extension);
-      print(protoUrl);
+      
       return CodeGeneratorResponse_File()
         ..name = dartUrl.path
         ..content = content;
@@ -243,17 +245,17 @@ class FileGenerator extends ProtobufContainer {
     final enumWriter = generateEnumFile(config);
 
     final files = [
-      makeFile('.pb.dart', mainWriter.toString()),
-      makeFile('.pbenum.dart', enumWriter.toString()),
-      makeFile('.pbjson.dart', generateJsonFile(config)),
+      makeFile('.pb.dart', mainWriter.toString(), parentFolder: options.pbPath),
+      makeFile('.pbenum.dart', enumWriter.toString(), parentFolder: options.pbPath),
+      makeFile('.pbjson.dart', generateJsonFile(config), parentFolder: options.pbPath),
     ];
 
     if (options.generateMetadata) {
       files.addAll([
         makeFile('.pb.dart.meta',
-            mainWriter.sourceLocationInfo.writeToJson().toString()),
+            mainWriter.sourceLocationInfo.writeToJson().toString(), parentFolder: options.pbPath),
         makeFile('.pbenum.dart.meta',
-            enumWriter.sourceLocationInfo.writeToJson().toString())
+            enumWriter.sourceLocationInfo.writeToJson().toString(), parentFolder: options.pbPath)
       ]);
     }
     if (options.useGrpc) {
@@ -261,7 +263,7 @@ class FileGenerator extends ProtobufContainer {
         files.add(makeFile('.pbgrpc.dart', generateGrpcFile(config)));
       }
     } if (options.useCustomRpc && apimethodCount > 0){
-      files.add(makeFile('.twirp.dart', generateApiFile(config)));
+      files.add(makeFile('.twirp.dart', generateApiFile(config), parentFolder: options.apiPath));
     } else {
       // files.add(makeFile('.pbserver.dart', generateServerFile(config)));
     }

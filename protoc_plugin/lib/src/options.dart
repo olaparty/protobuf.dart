@@ -52,11 +52,16 @@ class GenerationOptions {
   final bool generateMetadata;
   final bool useCustomRpc;
   final bool disableConstructorArgs;
+  final String pbPath;
+  final String apiPath;
 
   GenerationOptions(
       {this.useGrpc = false,
       this.generateMetadata = false,
       this.useCustomRpc = true,
+      this.pbPath = '.',
+      this.apiPath = '.',
+
       this.disableConstructorArgs = false});
 }
 
@@ -110,6 +115,32 @@ class DisableConstructorArgsParser implements SingleOptionParser {
   }
 }
 
+class PbPathArgsParser implements SingleOptionParser {
+  String pbPath = '.';
+
+  @override
+  void parse(String name, String? value, OnError onError) {
+    if (value == null) {
+      onError('Invalid pb_path option. Value expected.');
+      return;
+    }
+    pbPath = value;
+  }
+}
+
+class ApiPathArgsParser implements SingleOptionParser {
+  String apiPath = '.';
+
+  @override
+  void parse(String name, String? value, OnError onError) {
+    if (value == null) {
+      onError('Invalid api_path option. Value expected.');
+      return;
+    }
+    apiPath = value;
+  }
+}
+
 /// Parser used by the compiler, which supports the `rpc` option (see
 /// [GrpcOptionParser]) and any additional option added in [parsers]. If
 /// [parsers] has a key for `rpc`, it will be ignored.
@@ -128,10 +159,18 @@ GenerationOptions? parseGenerationOptions(
   final disableConstructorArgsParser = DisableConstructorArgsParser();
   newParsers['disable_constructor_args'] = disableConstructorArgsParser;
 
+  final pbArgsParser = PbPathArgsParser();
+  newParsers['pb_path'] = pbArgsParser;
+
+  final apiArgsParser = ApiPathArgsParser();
+  newParsers['api_path'] = apiArgsParser;
+
   if (genericOptionsParser(request, response, newParsers)) {
     return GenerationOptions(
         useGrpc: grpcOptionParser.grpcEnabled,
         generateMetadata: generateMetadataParser.generateKytheInfo,
+        pbPath: pbArgsParser.pbPath,
+        apiPath: apiArgsParser.apiPath,
         disableConstructorArgs: disableConstructorArgsParser.value);
   }
   return null;
