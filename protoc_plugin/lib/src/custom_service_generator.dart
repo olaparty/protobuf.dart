@@ -44,9 +44,10 @@ class CustomServiceGenerator {
 
     // avoid: ClientApi
     if (name.endsWith('API')) {
-      _clientClassname = name.substring(0, name.length - 3);
+      _clientClassname = name;
+    } else {
+      _clientClassname = name.endsWith('Api') ? name : '${name}Api';
     }
-    _clientClassname = name.endsWith('Api') ? name : name + 'Api';
   }
 
   /// Finds all message types used by this service.
@@ -55,7 +56,7 @@ class CustomServiceGenerator {
   /// in [_undefinedDeps].
   /// Precondition: messages have been registered and resolved.
   void resolve(GenerationContext ctx) {
-    for (var method in _descriptor.method) {
+    for (final method in _descriptor.method) {
       _methods.add(_CustomApiMethod(this, ctx, method));
     }
   }
@@ -80,7 +81,7 @@ class CustomServiceGenerator {
   /// For each .pb.dart file that the generated code needs to import,
   /// add its generator.
   void addImportsTo(Set<FileGenerator> imports) {
-    for (var mg in _deps.values) {
+    for (final mg in _deps.values) {
       imports.add(mg.fileGen);
     }
   }
@@ -89,9 +90,9 @@ class CustomServiceGenerator {
   ///
   /// Throws an exception if it can't be resolved.
   String _getDartClassName(String fqname) {
-    var mg = _deps[fqname];
+    final mg = _deps[fqname];
     if (mg == null) {
-      var location = _undefinedDeps[fqname];
+      final location = _undefinedDeps[fqname];
       // TODO(nichite): Throw more actionable error.
       throw 'FAILURE: Unknown type reference ($fqname) for $location';
     }
@@ -100,6 +101,12 @@ class CustomServiceGenerator {
 
   void generate(IndentingWriter out) {
     out.addBlock('class $_clientClassname {', '}', () {
+      out.println('$_clientClassname._();');
+      out.println('static $_clientClassname? _instance;');
+      out.addBlock('static $_clientClassname get instance {', '}', () {
+          out.println('_instance ??= $_clientClassname._();');
+          out.println('return _instance!;');
+       });
       out.println();
       for (final method in _methods) {
         method.generateClientStub(out);
@@ -131,32 +138,75 @@ class _CustomApiMethod {
     final responseType = service._getDartClassName(method.outputType);
 
     final argumentType = requestType;
-    final clientReturnType = '$_responseFuture<$responseType?>';
+    final clientReturnType = '$_responseFuture<$responseType>';
 
-    var serviceName = service.serviceName; // upperCaseFirstLetter(service.serviceName);
+    final serviceName = service.serviceName; // upperCaseFirstLetter(service.serviceName);
     // if(serviceName.isNotEmpty){
     //   serviceName = '${serviceName.substring(0, 1).toUpperCase()}${serviceName.substring(1)}';
     // }
 
-    var apiPrifx = 'go/';
-    var nameSplits = service.fileGen.descriptor.name.split('__');
+    var apiPrefix = 'go/';
+    final nameSplits = service.fileGen.descriptor.name.split('__');
     if (nameSplits.length == 2) {
-      apiPrifx = '$apiPrifx${nameSplits.first}/';
+      apiPrefix = '$apiPrefix${nameSplits.first}/';
     }
+    
 
-    return _CustomApiMethod._(serviceName, dartName, argumentType, clientReturnType, responseType, apiPrifx);
+    return _CustomApiMethod._(serviceName, dartName, argumentType, clientReturnType, responseType, apiPrefix);
   }
 
   void generateClientStub(IndentingWriter out) {
     out.println();
-    out.addBlock('static $_clientReturnType $_dartName($_argumentType request, {$coreImportPrefix.bool toastMessage = true, $coreImportPrefix.bool throwError = true}) async {', '}', () {
-    out.println("$coreImportPrefix.String url = '\${System.domain}$_apiPrefix$_serviceName/$_dartName';");
-    out.println('final proto = ProtobufOptions(requestMessage: request, responseMessage: $_responseType());');
+    final apiName = convertApiName(_dartName);
+    final serviceName = convertServiceName(_serviceName);
+    out.addBlock(
+        '$_clientReturnType $apiName($_argumentType request, {$coreImportPrefix.bool toastMessage = true, $coreImportPrefix.bool throwError = true}) async {',
+        '}', () {
+      
+      out.println("$coreImportPrefix.String url = '\${System.domain}$_apiPrefix$serviceName/$apiName';");
+      out.println('final proto = ProtobufOptions(requestMessage: request, responseMessage: $_responseType());');
+      out.println('XhrResponse response = await Xhr.postWithPbOptions(url, proto,throwOnError: false);');
+      out.println('final error = response.error;');
 
-    var serviceName = convertServiceName(_serviceName);
-    var apiName = convertApiName(_dartName);
+      out.addBlock('if (error == null) {', '}', () {
+        out.println('final response = proto.responseMessage as $_responseType;');
 
+        out.addBlock('if (response.success) {', '}', () {
+          out.println('return response;');
+        });
 
+        out.addBlock('if (toastMessage) {', '}', () {
+          out.println('Fluttertoast.showCenter(msg: response.msg);');
+        });
+
+        out.addBlock('if (throwError) {', '}', () {
+          out.println('throw XhrError(XhrErrorCode.Api, response.msg);');
+        });
+        out.println('return response;');
+      });
+
+      out.addBlock('else {', '}', () {
+        out.addBlock('if (toastMessage) {', '}', () {
+          out.println('Fluttertoast.showCenter(msg: error.toString());');
+        });
+
+        out.addBlock('if (throwError) {', '}', () {
+          out.println('throw(error);');
+        });
+      });
+
+      out.println('return $_responseType(success: false, msg: error.toString());');
+    });
+  }
+
+  // generate twirp client stub. Currently unused since PT does not use twirp
+  void generateTwirpClientStub(IndentingWriter out) {
+    out.println();
+    out.addBlock(
+        'static $_clientReturnType $_dartName($_argumentType request, {$coreImportPrefix.bool toastMessage = true, $coreImportPrefix.bool throwError = true}) async {',
+        '}', () {
+      out.println("$coreImportPrefix.String url = '\${System.domain}$_apiPrefix$_serviceName/$_dartName';");
+      out.println('final proto = ProtobufOptions(requestMessage: request, responseMessage: $_responseType());');
       out.println('XhrResponse response = await Xhr.postWithPbOptions(url, proto,throwOnError: false);');
       out.println('if (response.error == null) {');
       out.println('return proto.responseMessage as $_responseType;');

@@ -230,9 +230,12 @@ class FileGenerator extends ProtobufContainer {
   List<CodeGeneratorResponse_File> generateFiles(OutputConfiguration config) {
     if (!_linked) throw StateError('not linked');
 
-    CodeGeneratorResponse_File makeFile(String extension, String content) {
-      final protoUrl = Uri.file(descriptor.name);
+    CodeGeneratorResponse_File makeFile(String extension, String content, {
+      String parentFolder = '.'
+    }) {
+      final protoUrl = Uri.file('$parentFolder/${descriptor.name}');
       final dartUrl = config.outputPathFor(protoUrl, extension);
+      
       return CodeGeneratorResponse_File()
         ..name = dartUrl.path
         ..content = content;
@@ -242,17 +245,17 @@ class FileGenerator extends ProtobufContainer {
     final enumWriter = generateEnumFile(config);
 
     final files = [
-      makeFile('.pb.dart', mainWriter.toString()),
-      makeFile('.pbenum.dart', enumWriter.toString()),
-      makeFile('.pbjson.dart', generateJsonFile(config)),
+      makeFile('.pb.dart', mainWriter.toString(), parentFolder: options.pbPath),
+      makeFile('.pbenum.dart', enumWriter.toString(), parentFolder: options.pbPath),
+      makeFile('.pbjson.dart', generateJsonFile(config), parentFolder: options.pbPath),
     ];
 
     if (options.generateMetadata) {
       files.addAll([
         makeFile('.pb.dart.meta',
-            mainWriter.sourceLocationInfo.writeToJson().toString()),
+            mainWriter.sourceLocationInfo.writeToJson().toString(), parentFolder: options.pbPath),
         makeFile('.pbenum.dart.meta',
-            enumWriter.sourceLocationInfo.writeToJson().toString())
+            enumWriter.sourceLocationInfo.writeToJson().toString(), parentFolder: options.pbPath)
       ]);
     }
     if (options.useGrpc) {
@@ -260,7 +263,7 @@ class FileGenerator extends ProtobufContainer {
         files.add(makeFile('.pbgrpc.dart', generateGrpcFile(config)));
       }
     } if (options.useCustomRpc && apimethodCount > 0){
-      files.add(makeFile('.twirp.dart', generateApiFile(config)));
+      files.add(makeFile('.api.dart', generateApiFile(config), parentFolder: options.apiPath));
     } else {
       // files.add(makeFile('.pbserver.dart', generateServerFile(config)));
     }
@@ -632,15 +635,22 @@ class FileGenerator extends ProtobufContainer {
     for (var generator in apiServiceGenerators) {
       generator.addImportsTo(imports);
     }
+
+    var apiPath = options.apiPath;
+    if (apiPath.endsWith('/')) {
+      apiPath = apiPath.substring(0, apiPath.length - 1);
+    }
+    final relative = apiPath.split('/').map((e) => '..',).join('/');
+
     for (var target in imports) {
       
-      _addImport(importWriter, config, target, '.pb.dart');
+      _addImport(importWriter, config, target, '.pb.dart', parent: '$relative/${options.pbPath}');
     }
 
     var resolvedImport =
         config.resolveImport(protoFileUri, protoFileUri, '.pb.dart');
     out.println(importWriter.emit());
-    out.println("export '$resolvedImport';");
+    out.println("export '$relative/${options.pbPath}/$resolvedImport';");
     out.println();
 
     for (var generator in apiServiceGenerators) {
@@ -702,16 +712,16 @@ class FileGenerator extends ProtobufContainer {
   /// Writes an import of a .dart file corresponding to a .proto file.
   /// (Possibly the same .proto file.)
   void _addImport(ImportWriter importWriter, OutputConfiguration config,
-      FileGenerator target, String ext) {
+      FileGenerator target, String ext, {String parent = ''}) {
     final url = config.resolveImport(target.protoFileUri, protoFileUri, ext);
-
+    final importPath = path.join(parent, url.toString());
     // .pb.dart files should always be prefixed -- the protoFileUri check will
     // evaluate to true not just for the main .pb.dart file based off the proto
     // file, but also for the .pbserver.dart, .pbgrpc.dart files.
     if ((ext == '.pb.dart') || protoFileUri != target.protoFileUri) {
-      importWriter.addImport(url.toString(), prefix: target.fileImportPrefix);
+      importWriter.addImport(importPath, prefix: target.fileImportPrefix);
     } else {
-      importWriter.addImport(url.toString());
+      importWriter.addImport(importPath);
     }
   }
 
