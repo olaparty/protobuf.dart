@@ -44,9 +44,11 @@ class CustomServiceGenerator {
 
     // avoid: ClientApi
     if (name.endsWith('API')) {
-      _clientClassname = name.substring(0, name.length - 3);
+      _clientClassname = name;
+    } else {
+      _clientClassname = name.endsWith('Api') ? name : name + 'Api';
     }
-    _clientClassname = name.endsWith('Api') ? name : name + 'Api';
+    
   }
 
   /// Finds all message types used by this service.
