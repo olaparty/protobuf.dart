@@ -636,20 +636,22 @@ class FileGenerator extends ProtobufContainer {
       generator.addImportsTo(imports);
     }
 
+    var apiPath = options.apiPath;
+    if (apiPath.endsWith('/')) {
+      apiPath = apiPath.substring(0, apiPath.length - 1);
+    }
+    final relative = apiPath.split('/').map((e) => '..',).join('/');
+
     for (var target in imports) {
-      var apiPath = options.apiPath;
-      if (apiPath.endsWith('/')) {
-        apiPath = apiPath.substring(0, apiPath.length - 1);
-      }
-      final relative = apiPath.split('/').map((e) => '..',).join('/');
+      
       _addImport(importWriter, config, target, '.pb.dart', parent: '$relative/${options.pbPath}');
     }
 
-    // var resolvedImport =
-    //     config.resolveImport(protoFileUri, protoFileUri, '.pb.dart');
+    var resolvedImport =
+        config.resolveImport(protoFileUri, protoFileUri, '.pb.dart');
     out.println(importWriter.emit());
-    // out.println("export '$resolvedImport';");
-    // out.println();
+    out.println("export '$relative/${options.pbPath}/$resolvedImport';");
+    out.println();
 
     for (var generator in apiServiceGenerators) {
       generator.generate(out);

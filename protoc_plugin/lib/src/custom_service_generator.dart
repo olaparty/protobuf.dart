@@ -145,21 +145,25 @@ class _CustomApiMethod {
     //   serviceName = '${serviceName.substring(0, 1).toUpperCase()}${serviceName.substring(1)}';
     // }
 
-    var apiPrifx = 'go/';
+    var apiPrefix = 'go/';
     final nameSplits = service.fileGen.descriptor.name.split('__');
     if (nameSplits.length == 2) {
-      apiPrifx = '$apiPrifx${nameSplits.first}/';
+      apiPrefix = '$apiPrefix${nameSplits.first}/';
     }
+    
 
-    return _CustomApiMethod._(serviceName, dartName, argumentType, clientReturnType, responseType, apiPrifx);
+    return _CustomApiMethod._(serviceName, dartName, argumentType, clientReturnType, responseType, apiPrefix);
   }
 
   void generateClientStub(IndentingWriter out) {
     out.println();
+    final apiName = convertApiName(_dartName);
+    final serviceName = convertServiceName(_serviceName);
     out.addBlock(
-        '$_clientReturnType $_dartName($_argumentType request, {$coreImportPrefix.bool toastMessage = true, $coreImportPrefix.bool throwError = true}) async {',
+        '$_clientReturnType $apiName($_argumentType request, {$coreImportPrefix.bool toastMessage = true, $coreImportPrefix.bool throwError = true}) async {',
         '}', () {
-      out.println("$coreImportPrefix.String url = '\${System.domain}$_apiPrefix$_serviceName/$_dartName';");
+      
+      out.println("$coreImportPrefix.String url = '\${System.domain}$_apiPrefix$serviceName/$apiName';");
       out.println('final proto = ProtobufOptions(requestMessage: request, responseMessage: $_responseType());');
       out.println('XhrResponse response = await Xhr.postWithPbOptions(url, proto,throwOnError: false);');
       out.println('final error = response.error;');
