@@ -263,7 +263,7 @@ class FileGenerator extends ProtobufContainer {
         files.add(makeFile('.pbgrpc.dart', generateGrpcFile(config)));
       }
     } if (options.useCustomRpc && apimethodCount > 0){
-      files.add(makeFile('.twirp.dart', generateApiFile(config), parentFolder: options.apiPath));
+      files.add(makeFile('.api.dart', generateApiFile(config), parentFolder: options.apiPath));
     } else {
       // files.add(makeFile('.pbserver.dart', generateServerFile(config)));
     }
