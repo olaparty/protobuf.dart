@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:protobuf/protobuf.dart';
 
@@ -15,6 +16,7 @@ import 'src/options.dart';
 import 'src/output_config.dart';
 import 'src/shared.dart';
 import 'string_escape.dart';
+import 'package:path/path.dart' as path;
 
 export 'src/code_generator.dart';
 

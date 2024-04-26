@@ -635,16 +635,21 @@ class FileGenerator extends ProtobufContainer {
     for (var generator in apiServiceGenerators) {
       generator.addImportsTo(imports);
     }
+
     for (var target in imports) {
-      
-      _addImport(importWriter, config, target, '.pb.dart');
+      var apiPath = options.apiPath;
+      if (apiPath.endsWith('/')) {
+        apiPath = apiPath.substring(0, apiPath.length - 1);
+      }
+      final relative = apiPath.split('/').map((e) => '..',).join('/');
+      _addImport(importWriter, config, target, '.pb.dart', parent: '$relative/${options.pbPath}');
     }
 
-    var resolvedImport =
-        config.resolveImport(protoFileUri, protoFileUri, '.pb.dart');
+    // var resolvedImport =
+    //     config.resolveImport(protoFileUri, protoFileUri, '.pb.dart');
     out.println(importWriter.emit());
-    out.println("export '$resolvedImport';");
-    out.println();
+    // out.println("export '$resolvedImport';");
+    // out.println();
 
     for (var generator in apiServiceGenerators) {
       generator.generate(out);
@@ -705,16 +710,16 @@ class FileGenerator extends ProtobufContainer {
   /// Writes an import of a .dart file corresponding to a .proto file.
   /// (Possibly the same .proto file.)
   void _addImport(ImportWriter importWriter, OutputConfiguration config,
-      FileGenerator target, String ext) {
+      FileGenerator target, String ext, {String parent = ''}) {
     final url = config.resolveImport(target.protoFileUri, protoFileUri, ext);
-
+    final importPath = path.join(parent, url.toString());
     // .pb.dart files should always be prefixed -- the protoFileUri check will
     // evaluate to true not just for the main .pb.dart file based off the proto
     // file, but also for the .pbserver.dart, .pbgrpc.dart files.
     if ((ext == '.pb.dart') || protoFileUri != target.protoFileUri) {
-      importWriter.addImport(url.toString(), prefix: target.fileImportPrefix);
+      importWriter.addImport(importPath, prefix: target.fileImportPrefix);
     } else {
-      importWriter.addImport(url.toString());
+      importWriter.addImport(importPath);
     }
   }
 
