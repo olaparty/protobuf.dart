@@ -36,7 +36,7 @@ class CustomServiceGenerator {
     final name = _descriptor.name;
     final package = fileGen.package;
 
-    if (package != null && package.isNotEmpty) {
+    if (package.isNotEmpty) {
       _fullServiceName = '$package.$name';
     } else {
       _fullServiceName = name;
@@ -68,10 +68,6 @@ class CustomServiceGenerator {
     if (_deps.containsKey(fqname)) return; // Already added.
 
     final mg = ctx.getFieldType(fqname) as MessageGenerator;
-    if (mg == null) {
-      _undefinedDeps[fqname] = location;
-      return;
-    }
     mg.checkResolved();
     _deps[mg.dottedName] = mg;
   }
@@ -163,7 +159,7 @@ class _CustomApiMethod {
         '$_clientReturnType $apiName($_argumentType request, {$coreImportPrefix.bool toastMessage = true, $coreImportPrefix.bool throwError = true, $coreImportPrefix.Map<$coreImportPrefix.String, $coreImportPrefix.String>? headers}) async {',
         '}', () {
       
-      out.println("$coreImportPrefix.String url = '\${System.domain}$_apiPrefix$serviceName/$apiName';");
+      out.println("$coreImportPrefix.String url = System.api('$_apiPrefix$serviceName/$apiName');");
       out.println('final proto = ProtobufOptions(requestMessage: request, responseMessage: $_responseType());');
       out.println('XhrResponse response = await Xhr.postWithPbOptions(url, proto, throwOnError: false, headers: headers);');
       out.println('final error = response.error;');
@@ -205,7 +201,7 @@ class _CustomApiMethod {
     out.addBlock(
         'static $_clientReturnType $_dartName($_argumentType request, {$coreImportPrefix.bool toastMessage = true, $coreImportPrefix.bool throwError = true, $coreImportPrefix.String>? headers}) async {',
         '}', () {
-      out.println("$coreImportPrefix.String url = '\${System.domain}$_apiPrefix$_serviceName/$_dartName';");
+      out.println("$coreImportPrefix.String url = System.api('$_apiPrefix$_serviceName/$_dartName');");
       out.println('final proto = ProtobufOptions(requestMessage: request, responseMessage: $_responseType());');
       out.println('XhrResponse response = await Xhr.postWithPbOptions(url, proto,throwOnError: false, headers: headers);');
       out.println('if (response.error == null) {');
