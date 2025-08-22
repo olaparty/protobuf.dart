@@ -54,6 +54,7 @@ The `protoc-gen-dart` executable is a Dart script and requires presence of
 - Run `dart pub get` in `protoc_plugin`
 - Build standalone executable with `dart compile exe bin/protoc_plugin.dart` in
   `protoc_plugin`
+- Rename the protoc_plugin.exe to ptProtocPlugin > then copy over to our app repo in tools/bin
 
 The generated executable does not require a `dart` executable to run. You
 should copy the generated executable `protoc_plugin/bin/protoc_plugin.exe` to
