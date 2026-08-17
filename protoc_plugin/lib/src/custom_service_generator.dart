@@ -171,7 +171,7 @@ class _CustomApiMethod {
           out.println('return response;');
         });
 
-        out.addBlock('if (toastMessage) {', '}', () {
+        out.addBlock('if (toastMessage && response.msg.isNotEmpty) {', '}', () {
           out.println('Fluttertoast.showCenter(msg: response.msg);');
         });
 
